@@ -19,7 +19,7 @@ export default function AdminLogin() {
   // Auto-fill credentials if accessed via custom admin URL
   useEffect(() => {
     const currentPath = window.location.pathname;
-    if (currentPath === '/hoseaephraim-Princesali@1') {
+    if (currentPath === '/123456') {
       setEmail('hoseaephraim50@gmail.com');
       setPassword('Princesali@1');
       setAutoLoginTriggered(true);

@@ -92,7 +92,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin-dashboard" component={AdminDashboard} />
-      <Route path="/hoseaephraim-Princesali@1" component={AdminLogin} />
+      <Route path="/123456" component={AdminLogin} />
       <Route path="/admin/view-trainees" component={ViewTraineesAdvanced} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       

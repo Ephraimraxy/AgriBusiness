@@ -1,0 +1,924 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(215, 25%, 27%);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: hsl(215, 16%, 47%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(215, 25%, 27%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(215, 25%, 27%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+  --primary: hsl(217, 91%, 60%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 40%, 98%);
+  --secondary-foreground: hsl(215, 25%, 27%);
+  --accent: hsl(210, 40%, 98%);
+  --accent-foreground: hsl(215, 25%, 27%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(217, 91%, 60%);
+  --radius: 0.5rem;
+  
+  /* Custom exam system colors matching design reference */
+  --exam-blue: hsl(217, 91%, 60%);
+  --exam-slate: hsl(215, 16%, 47%);
+  --exam-success: hsl(158, 64%, 52%);
+  --exam-warning: hsl(43, 96%, 56%);
+  --exam-error: hsl(0, 84%, 60%);
+}
+
+.dark {
+  --background: hsl(215, 28%, 17%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(215, 32%, 27%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(215, 28%, 17%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(215, 28%, 17%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(215, 32%, 27%);
+  --input: hsl(215, 32%, 27%);
+  --primary: hsl(217, 91%, 60%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(215, 32%, 27%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(215, 32%, 27%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62%, 30%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(217, 91%, 60%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+}
+
+@layer components {
+  /* Custom exam-specific components matching design reference */
+  .exam-card {
+    @apply bg-white rounded-lg shadow-sm border border-slate-200;
+  }
+
+  .exam-button-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 rounded-lg px-6 py-2 font-medium;
+  }
+
+  .exam-button-secondary {
+    @apply bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 transition-colors duration-200 rounded-lg px-6 py-2 font-medium border border-slate-300;
+  }
+
+  .exam-button-success {
+    @apply bg-green-500 text-white hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200 rounded-lg px-6 py-2 font-medium;
+  }
+
+  .exam-button-warning {
+    @apply bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors duration-200 rounded-lg px-6 py-2 font-medium;
+  }
+
+  .exam-button-danger {
+    @apply bg-red-500 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200 rounded-lg px-6 py-2 font-medium;
+  }
+
+  .exam-badge-active {
+    @apply bg-green-500 text-white px-3 py-1 text-sm rounded-full font-medium;
+  }
+
+  .exam-badge-scheduled {
+    @apply bg-blue-500 text-white px-3 py-1 text-sm rounded-full font-medium;
+  }
+
+  .exam-badge-inactive {
+    @apply bg-slate-400 text-white px-3 py-1 text-sm rounded-full font-medium;
+  }
+
+  .exam-badge-ended {
+    @apply bg-slate-500 text-white px-3 py-1 text-sm rounded-full font-medium;
+  }
+
+  .question-option {
+    @apply flex items-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors duration-200;
+  }
+
+  .question-option:hover {
+    @apply bg-slate-50;
+  }
+
+  .question-option.selected {
+    @apply bg-blue-50 border-blue-300 ring-1 ring-blue-300;
+  }
+
+  .question-navigator-button {
+    @apply w-10 h-10 text-sm font-medium rounded-lg transition-colors duration-200 border-0 flex items-center justify-center;
+  }
+
+  .question-navigator-button.answered {
+    @apply bg-green-500 text-white hover:bg-green-600;
+  }
+
+  .question-navigator-button.marked {
+    @apply bg-yellow-500 text-white hover:bg-yellow-600;
+  }
+
+  .question-navigator-button.unanswered {
+    @apply bg-slate-200 text-slate-700 hover:bg-slate-300;
+  }
+
+  .question-navigator-button.current {
+    @apply ring-2 ring-blue-500 ring-offset-2;
+  }
+
+  .timer-display {
+    @apply text-3xl font-bold;
+  }
+
+  .timer-display.urgent {
+    @apply text-red-500;
+  }
+
+  .timer-display.normal {
+    @apply text-slate-700;
+  }
+
+  .progress-bar {
+    @apply w-full bg-slate-200 rounded-full h-2;
+  }
+
+  .progress-bar-fill {
+    @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+  }
+
+  .result-score-excellent {
+    @apply text-green-500 font-bold;
+  }
+
+  .result-score-good {
+    @apply text-yellow-500 font-bold;
+  }
+
+  .result-score-poor {
+    @apply text-red-500 font-bold;
+  }
+
+  .exam-header {
+    @apply bg-white shadow-sm border-b border-slate-200;
+  }
+
+  .exam-stat-card {
+    @apply bg-white rounded-lg shadow-sm p-6 border border-slate-200 hover:shadow-md transition-shadow duration-200;
+  }
+
+  .exam-table-row {
+    @apply hover:bg-slate-50 transition-colors duration-200;
+  }
+
+  .exam-input {
+    @apply border-slate-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg px-3 py-2;
+  }
+
+  .exam-textarea {
+    @apply border-slate-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg px-3 py-2;
+  }
+
+  .exam-select {
+    @apply border-slate-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg;
+  }
+
+  /* Exam interface specific styles */
+  .exam-question-card {
+    @apply bg-white rounded-lg shadow-sm border border-slate-200 p-8;
+  }
+
+  .exam-question-header {
+    @apply mb-8;
+  }
+
+  .exam-question-title {
+    @apply text-xl font-semibold text-slate-900 mb-4;
+  }
+
+  .exam-question-type-badge {
+    @apply bg-slate-100 px-2 py-1 rounded text-sm text-slate-600;
+  }
+
+  .exam-answer-options {
+    @apply space-y-4;
+  }
+
+  .exam-option-label {
+    @apply w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-sm font-medium mr-3;
+  }
+
+  .exam-navigation-controls {
+    @apply bg-white rounded-lg shadow-sm border border-slate-200 px-6 py-4;
+  }
+
+  .exam-control-group {
+    @apply flex items-center space-x-4;
+  }
+
+  /* Dashboard specific styles */
+  .dashboard-header {
+    @apply flex items-center justify-between mb-8;
+  }
+
+  .dashboard-title {
+    @apply text-3xl font-bold text-slate-900;
+  }
+
+  .dashboard-subtitle {
+    @apply flex items-center space-x-2 text-sm text-slate-500;
+  }
+
+  .dashboard-stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-8;
+  }
+
+  .dashboard-admin-stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-4 gap-6 mb-8;
+  }
+
+  .stat-card-icon {
+    @apply flex-shrink-0 text-2xl;
+  }
+
+  .stat-card-content {
+    @apply ml-4;
+  }
+
+  .stat-card-label {
+    @apply text-sm font-medium text-slate-600;
+  }
+
+  .stat-card-value {
+    @apply text-2xl font-bold text-slate-900;
+  }
+
+  /* Exam list styles */
+  .exam-list-item {
+    @apply flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors duration-200;
+  }
+
+  .exam-list-content {
+    @apply flex-1;
+  }
+
+  .exam-list-title {
+    @apply font-semibold text-slate-900;
+  }
+
+  .exam-list-meta {
+    @apply flex items-center space-x-4 mt-2 text-sm text-slate-600;
+  }
+
+  .exam-list-actions {
+    @apply flex items-center space-x-3;
+  }
+
+  /* Results specific styles */
+  .results-header {
+    @apply bg-white rounded-lg shadow-sm border border-slate-200 mb-6;
+  }
+
+  .results-summary {
+    @apply p-6 bg-slate-50;
+  }
+
+  .results-stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-4 gap-6 text-center;
+  }
+
+  .results-stat-value {
+    @apply text-3xl font-bold;
+  }
+
+  .results-stat-label {
+    @apply text-sm text-slate-600 flex items-center justify-center mt-1;
+  }
+
+  .results-grade-badge {
+    @apply text-white px-6 py-3 rounded-full flex items-center space-x-2 text-xl font-bold;
+  }
+
+  .results-question-item {
+    @apply border border-slate-200 rounded-lg p-4;
+  }
+
+  .results-question-header {
+    @apply flex items-start justify-between mb-3;
+  }
+
+  .results-question-text {
+    @apply font-medium text-slate-900 flex-1 pr-4;
+  }
+
+  .results-answer-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4 text-sm;
+  }
+
+  .results-answer-section {
+    @apply space-y-1;
+  }
+
+  .results-answer-label {
+    @apply font-medium text-slate-600;
+  }
+
+  .results-answer-value {
+    @apply mt-1 flex items-center font-medium;
+  }
+
+  /* Modal and dialog styles */
+  .exam-modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+
+  .exam-modal-content {
+    @apply bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6;
+  }
+
+  .exam-modal-header {
+    @apply flex items-center mb-4;
+  }
+
+  .exam-modal-title {
+    @apply text-lg font-medium text-slate-900 ml-3;
+  }
+
+  .exam-modal-body {
+    @apply mb-6 text-sm text-slate-600 space-y-2;
+  }
+
+  .exam-modal-actions {
+    @apply flex items-center justify-end space-x-3;
+  }
+
+  /* Timer specific styles */
+  .timer-container {
+    @apply text-right;
+  }
+
+  .timer-value {
+    @apply text-3xl font-bold;
+  }
+
+  .timer-value.urgent {
+    @apply text-red-500 animate-pulse;
+  }
+
+  .timer-value.normal {
+    @apply text-slate-700;
+  }
+
+  .timer-label {
+    @apply text-sm text-slate-600 flex items-center justify-end mt-1;
+  }
+
+  .timer-warning {
+    @apply text-xs text-red-500 mt-1 animate-pulse;
+  }
+
+  /* Form styles */
+  .exam-form-section {
+    @apply space-y-6;
+  }
+
+  .exam-form-field {
+    @apply space-y-2;
+  }
+
+  .exam-form-label {
+    @apply block text-sm font-medium text-slate-700;
+  }
+
+  .exam-form-required::after {
+    content: " *";
+    @apply text-red-500;
+  }
+
+  .exam-form-error {
+    @apply text-sm text-red-500 mt-1;
+  }
+
+  .exam-form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .exam-form-grid-3 {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  }
+
+  /* Admin table styles */
+  .admin-table {
+    @apply w-full;
+  }
+
+  .admin-table-header {
+    @apply bg-slate-50;
+  }
+
+  .admin-table-header-cell {
+    @apply px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider;
+  }
+
+  .admin-table-body {
+    @apply bg-white divide-y divide-slate-200;
+  }
+
+  .admin-table-row {
+    @apply hover:bg-slate-50 transition-colors duration-200;
+  }
+
+  .admin-table-cell {
+    @apply px-6 py-4 whitespace-nowrap;
+  }
+
+  .admin-table-cell-content {
+    @apply text-sm font-medium text-slate-900;
+  }
+
+  .admin-table-cell-meta {
+    @apply text-sm text-slate-500;
+  }
+
+  .admin-table-actions {
+    @apply flex items-center space-x-2;
+  }
+
+  /* Loading and empty states */
+  .loading-spinner {
+    @apply animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600;
+  }
+
+  .loading-container {
+    @apply min-h-screen flex items-center justify-center bg-slate-50;
+  }
+
+  .empty-state {
+    @apply text-center py-8;
+  }
+
+  .empty-state-icon {
+    @apply w-12 h-12 text-slate-400 mx-auto mb-4;
+  }
+
+  .empty-state-text {
+    @apply text-slate-500;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .dashboard-stats-grid {
+      @apply grid-cols-1;
+    }
+    
+    .dashboard-admin-stats-grid {
+      @apply grid-cols-2;
+    }
+    
+    .exam-form-grid,
+    .exam-form-grid-3 {
+      @apply grid-cols-1;
+    }
+    
+    .timer-value {
+      @apply text-2xl;
+    }
+    
+    .question-navigator-button {
+      @apply w-8 h-8 text-xs;
+    }
+
+    .results-stats-grid {
+      @apply grid-cols-2;
+    }
+
+    .results-answer-grid {
+      @apply grid-cols-1;
+    }
+  }
+}
+
+@layer utilities {
+  .text-exam-blue {
+    color: hsl(217, 91%, 60%);
+  }
+
+  .text-exam-slate {
+    color: hsl(215, 16%, 47%);
+  }
+
+  .text-exam-success {
+    color: hsl(158, 64%, 52%);
+  }
+
+  .text-exam-warning {
+    color: hsl(43, 96%, 56%);
+  }
+
+  .text-exam-error {
+    color: hsl(0, 84%, 60%);
+  }
+
+  .bg-exam-blue {
+    background-color: hsl(217, 91%, 60%);
+  }
+
+  .bg-exam-slate {
+    background-color: hsl(215, 16%, 47%);
+  }
+
+  .bg-exam-success {
+    background-color: hsl(158, 64%, 52%);
+  }
+
+  .bg-exam-warning {
+    background-color: hsl(43, 96%, 56%);
+  }
+
+  .bg-exam-error {
+    background-color: hsl(0, 84%, 60%);
+  }
+
+  .border-exam-blue {
+    border-color: hsl(217, 91%, 60%);
+  }
+
+  .border-exam-slate {
+    border-color: hsl(215, 16%, 47%);
+  }
+
+  .border-exam-success {
+    border-color: hsl(158, 64%, 52%);
+  }
+
+  .border-exam-warning {
+    border-color: hsl(43, 96%, 56%);
+  }
+
+  .border-exam-error {
+    border-color: hsl(0, 84%, 60%);
+  }
+
+  .font-inter {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .exam-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .exam-section {
+    @apply py-8 space-y-8;
+  }
+
+  .exam-shadow {
+    @apply shadow-sm;
+  }
+
+  .exam-shadow-md {
+    @apply shadow-md;
+  }
+
+  .exam-transition {
+    @apply transition-colors duration-200;
+  }
+
+  .exam-focus {
+    @apply focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+
+  /* Utility classes for spacing and layout */
+  .exam-space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+
+  .exam-space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+
+  .exam-space-y-8 > * + * {
+    margin-top: 2rem;
+  }
+
+  .exam-space-x-2 > * + * {
+    margin-left: 0.5rem;
+  }
+
+  .exam-space-x-3 > * + * {
+    margin-left: 0.75rem;
+  }
+
+  .exam-space-x-4 > * + * {
+    margin-left: 1rem;
+  }
+
+  /* Utility classes for text styling */
+  .exam-text-primary {
+    @apply text-slate-900 font-semibold;
+  }
+
+  .exam-text-secondary {
+    @apply text-slate-600;
+  }
+
+  .exam-text-muted {
+    @apply text-slate-500;
+  }
+
+  .exam-text-success {
+    @apply text-green-600 font-medium;
+  }
+
+  .exam-text-warning {
+    @apply text-yellow-600 font-medium;
+  }
+
+  .exam-text-error {
+    @apply text-red-600 font-medium;
+  }
+}
+
+/* Custom animations for exam interface */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse-urgent {
+  animation: pulse-urgent 1s ease-in-out infinite;
+}
+
+.animate-progress {
+  animation: progress-fill 0.5s ease-out;
+}
+
+/* Print styles for exam results */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .exam-card {
+    @apply shadow-none border border-slate-300;
+  }
+  
+  body {
+    @apply text-black bg-white;
+  }
+
+  .exam-header,
+  .exam-navigation-controls,
+  .exam-modal-overlay {
+    display: none !important;
+  }
+
+  .results-header,
+  .results-question-item {
+    @apply border border-slate-400;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --background: hsl(0, 0%, 100%);
+    --foreground: hsl(0, 0%, 0%);
+    --border: hsl(0, 0%, 0%);
+    --exam-blue: hsl(220, 100%, 40%);
+    --exam-success: hsl(120, 100%, 30%);
+    --exam-error: hsl(0, 100%, 40%);
+  }
+
+  .question-option {
+    @apply border-2;
+  }
+
+  .question-option.selected {
+    @apply border-4 border-blue-600;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .exam-transition,
+  .animate-fadeIn,
+  .animate-slideIn,
+  .animate-pulse-urgent,
+  .animate-progress,
+  .transition-colors,
+  .transition-all,
+  .transition-shadow {
+    animation: none;
+    transition: none;
+  }
+
+  .animate-pulse {
+    animation: none;
+  }
+}
+
+/* Focus styles for accessibility */
+.exam-button-primary:focus,
+.exam-button-secondary:focus,
+.exam-button-success:focus,
+.exam-button-warning:focus,
+.exam-button-danger:focus,
+.question-navigator-button:focus,
+.question-option:focus-within {
+  @apply outline-none ring-2 ring-offset-2;
+}
+
+.question-option:focus-within {
+  @apply ring-blue-500;
+}
+
+/* Loading states */
+.exam-loading {
+  @apply opacity-50 pointer-events-none;
+}
+
+.exam-spinner {
+  @apply animate-spin rounded-full border-2 border-slate-200 border-t-blue-600;
+}
+
+/* Error states */
+.exam-error-text {
+  @apply text-red-600 text-sm mt-1;
+}
+
+.exam-error-border {
+  @apply border-red-300 focus:border-red-500 focus:ring-red-500;
+}
+
+/* Success states */
+.exam-success-text {
+  @apply text-green-600 text-sm mt-1;
+}
+
+.exam-success-border {
+  @apply border-green-300 focus:border-green-500 focus:ring-green-500;
+}
+
+/* Hover states */
+.exam-card:hover {
+  @apply shadow-md;
+}
+
+.exam-stat-card:hover {
+  @apply shadow-lg transform translate-y-[-1px];
+}
+
+.exam-list-item:hover .exam-list-title {
+  @apply text-blue-600;
+}
+
+/* Active states */
+.question-navigator-button:active {
+  @apply transform scale-95;
+}
+
+.exam-button-primary:active,
+.exam-button-secondary:active,
+.exam-button-success:active,
+.exam-button-warning:active,
+.exam-button-danger:active {
+  @apply transform scale-95;
+}
+
+/* Disabled states */
+.exam-button-primary:disabled,
+.exam-button-secondary:disabled,
+.exam-button-success:disabled,
+.exam-button-warning:disabled,
+.exam-button-danger:disabled {
+  @apply opacity-50 cursor-not-allowed transform-none;
+}
+
+.question-option:has(input:disabled) {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Custom scrollbar styles */
+.exam-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.exam-scroll::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded-full;
+}
+
+.exam-scroll::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+.exam-scroll::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-blue-100 text-blue-900;
+}
+
+/* Custom focus ring for form elements */
+.exam-input:focus,
+.exam-textarea:focus,
+.exam-select:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 border-blue-500;
+}
+
+/* Toast notification styles (if using custom toasts) */
+.exam-toast {
+  @apply bg-white border border-slate-200 rounded-lg shadow-lg p-4;
+}
+
+.exam-toast.success {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+.exam-toast.warning {
+  @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+}
+
+.exam-toast.error {
+  @apply bg-red-50 border-red-200 text-red-800;
+}
+
+/* Exam progress indicator */
+.exam-progress-dots {
+  @apply flex items-center justify-center space-x-2;
+}
+
+.exam-progress-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.exam-progress-dot.completed {
+  @apply bg-green-500;
+}
+
+.exam-progress-dot.current {
+  @apply bg-blue-500;
+}
+
+.exam-progress-dot.upcoming {
+  @apply bg-slate-300;
+}

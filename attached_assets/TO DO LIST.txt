@@ -1,0 +1,71 @@
+Things remaining to be implemented in the Admin:
+1. dashboard:
+	this should hold an overview of everything thing about the whole system summary but 	to be implemented last
+2. Sponsors: 
+	this has been half way done, but the need for it is that, I will set up the 	sponsors details for a particular batch of trainee to be registered which will 	reflect in the registration steps
+3. Exams:
+	Exam setup should be able to create an exam question of various answering format, 	set duration not start time and end time but just a countdown time which should 	work explicitly for any trainee who only click there stat button. and the question 	should be sent or available at the exam record section for publishing and other 	actions. so there should be nothing like activate in that page let the records page 	handle that part.
+
+	Exams results button should for all the trainee in a table showing the person tag 	number, name, 	total questions answered out of, number of correct answer, number 	of wrong answers, percentage, position. and have and export button for it.
+
+	Exams records should hold the question set from the exam setup section in a table 	title, description, created/last modified, actions for delete, edit, publish and 	unpublish (all this should take effect from the database as well).
+ 4. Generate ID:
+	Staff ID this section I want the ID to be a section where a button will be that I 	will click it will ask me how many do I want to generate and I will set the numbers 	accordingly and submit and it will generate and ID along side in the database (ST-	C0S0S01, ST-C0S0S02 and so on) and let there be a table below that will hold the 	generated ID(s) I just generated (ID, email, first name, surname, date generated, 	preview and DELETE icon) note that at first when the ID is generated, the remaining 	column will remain pending until I give a staff that ID to use in the staff 	registration page at the homepage (localhost:5000) to register before and after 	completion, the remain 	remaining fields will be updated according to the staff who 	used the ID to register by showing only the necessary fields in the table the 	preview will open the complete details of that staff who registered (first name, 	surname, middle name, phone number, position, state of origin and LGA, and a field 	to enter email 	and a create password button below which will then make firebase to 	send mail to the user to setup a password in the email they used if it doesn't 	exists in the database and is also valid email and after setting the password they 	will come back 	and enter their email or ID(both should be able to work) and the 	password to login and access their dashboard.
+
+	Resource Person ID (RP) this section I want the ID to be a section where a button 	will be that I 	will click it will ask me how many do I want to generate and I will 	set the numbers accordingly and submit and it will generate and ID along side in 	the database (RP-C0S0S01, RP-C0S0S02 and so on) and let there be a table below that 	will hold the generated ID(s) I just generated (ID, email, first name, surname, 	specialization, date generated, preview and DELETE icon) note that at first when 	the ID is generated, the remaining column will remain pending until I give a staff 	that ID to use in the staff registration page at the homepage (localhost:5000) to 	register before and after completion, the remain remaining fields will be updated 	according to the staff who used the ID to register by showing only the necessary 	fields in the table the preview will open the complete details of that 	Resource 	person who registered (first name, surname, middle name, phone 	number, 	specialization, years of experience, state of origin and LGA, and a field to enter 	email and a create password button below which will then make firebase 	to send 	mail to that email to setup a password in the email they used if it doesn't exists 	in the database and is also a valid email and after setting the password they will 	come back and enter their email or ID(both should be able to work) and the password 	to login and access their dashboard.
+5. Registration:
+	this button should perfectly work hand in hand and in the database to activate and 	deactivate the registration button for the registration process in the homepage 	(localhost:5000) which when click the admin will see RP registration close and 	start toggle, Staff registration close and start toggle and Trainee registration 	close and start toggle.  close all and start all toggle.
+
+
+_________________________________________________________________________________________
+Things remaining to be implemented in the (localhost:5000):
+1. Create a staff and resource person dashboard for them to see after registration
+	Resource person side bar to have (Dashboard (to view self profile details and 	resubmit such that it will reupdate the database, Content (Manage training 	materials Videos and Files) (just exactly as it is in the admin dashboard), (their 	notification bell should be able to see the whole announcements and also receive 	the messages sent by the trainees and they should be able to reply as well back to 	only the senders), activities (which will show the time table for daily activities  	within the training period 
+
+	Staff side bar to have (Dashboard (to view self profile details and resubmit 	such that it will reupdate the database, Content (Manage training materials Videos 	and Files) (just exactly as it is in the admin dashboard), (their notification bell 	should be able to see the whole announcements and also receive the messages sent by 	the trainees and they should be able to reply as well back to only the senders), 	activities (which will show the time table for daily activities within the training 	period. 
+
+2. Staff registration form the homepage button (localhost:5000):
+	Staff ID this page I want a valid ID to be used here first that was generated by 	the admin where they will first of all input the ID (ST-C0S0S01, ST-C0S0S02 and so 	on) in the filed to verify if it exists in the database base and hasn't been take 	by another user then proceed for the proper registration with their complete 	details of that staff who (first name, surname, middle name, phone number, 	position, state of origin and LGA, and a field to enter email and a create password 	button below which will then make firebase to send mail to the user to setup a 	password in the email they used if it doesn't exists in the database and is also 	valid email and after setting the password they will come back 	and enter their 	email or ID(both should be able to work) and the password to login and access their 	dashboard.
+3. Resource Person registration form the homepage button (localhost:5000):
+	RP ID this page I want a valid ID to be used here first that was generated by the 	admin where they will first of all input the ID (RP-C0S0S01, RP-C0S0S02 and so on) 	in the filed to verify if it exists in the database base and hasn't been take by 	another user then proceed for the proper registration with their complete 	details of that Resource Person with (first name, surname, middle name, phone 	number, specialization, years of experience, state of origin and LGA, and a field 	to enter email and a create password button below which will then make firebase 	to send mail to that email to setup a password in the email they used if it doesn't 	exists 	in the database and is also a valid email and after setting the password 	they will come back and enter their email or ID(both should be able to work) and 	the password to login and access their dashboard.
+_______________________________________________________________________________
+
+Things remaining to be implemented in the Trainee:
+1. Progress: 
+	Replace the Progress Button at the side bar to activities which will show the time 	table for daily activities within the training period 
+2. Dashboard:
+	this should hold an overview of everything thing about the whole system summary but 	to be implemented last
+3. Take exam:
+	to see all the exams been set and published from the exam record at the admin set 	and be able to take the exams accordingly
+4. View results:
+	to be able to view only self results that was submitted (total questions, correct 	answered questions, failed answered question unanswered questions which may occur 	due to time auto submit, percentage score and position to be checked from the 	database) and fetch button to fetch  from the database after submission in the 	take exam, preview icon to see the whole questions section what they answered 	correctly and wrong answers with the supposed answer and a close button.
+5. View resource persons:
+	to see all the available real and registered resource persons and be able to send 	them a message and they should respond as well (all messages and response should be 	at the bell section such that when the trainee send the message to the resource 	person from here they will see a notification at their bell icon for general 	announcement is and when clicked they should be able to see who sent the message 	and reply to only the person)
+6. View Staff:
+	Add a staff button at the trainee side bar to see all the available real and 	registered staffs and be able to send them a message and they should respond as 	well (all messages and response should be at the bell section such that when the 	trainee send the message to the staff from here they will see a notification at 	their bell icon for general announcement is and when clicked they should be able to 	see who sent the message and reply to only the person) 
+
+
+	✓ BUILD COMPLETED SUCCESSFULLY
+	✓ DATE/TIME FORMAT STANDARDIZED - Now consistent across all dashboards (trainee, staff, resource person)
+	✓ NOTIFICATION BELL FIXED - Now uses shared NotificationBell component showing current announcements properly
+	✓ RP LOGIN ROUTE FIXED - Fixed navigation from landing page to correct route (/rp-login instead of /original/rp-login)
+	✓ FOOTER ADDED TO STAFF & RP DASHBOARDS - Added consistent footer matching trainee dashboard
+	✓ STATIC LAYOUT IMPLEMENTED - Header, sidebar, and footer now static across all dashboards
+	✓ FOOTER DESIGN IMPROVED - Streamlined footer with everything in one line, slimmer design, and CSS FARMS accent colors
+	✓ FOOTER COLOR MATCHED HEADER - Changed from dark green to subtle green gradient matching header pattern
+	✓ LOGOUT BUTTON REPOSITIONED - Moved closer to last sidebar button instead of bottom for better UX
+	✓ HEADER VARIANTS FIXED - Staff and RP dashboards now show correct labels instead of "Admin Panel" and "Administrator"
+	✓ USER ID IN AVATAR - Staff and RP circular avatars now display their respective IDs instead of initials
+	✓ LOGOUT BUTTON REMOVED FROM HEADER - Removed logout button from staff and RP headers (now only in sidebar)
+	✓ ADMIN FOOTER ADDED - Added consistent footer to admin dashboard matching other dashboards
+	✓ CONTENT BUTTON ADDED - Added Content button with dropdown (Videos & Files) to staff and RP sidebars
+	✓ CONTENT FUNCTIONALITY IMPLEMENTED - Videos and Files buttons now show actual upload interfaces like admin dashboard
+	✓ CONTENT COMPONENTS INTEGRATED - Now using actual AdminVideoUpload and AdminFileUpload components with full functionality
+	✓ CONTENT DROPDOWN BEHAVIOR FIXED - Content button now properly toggles dropdown and closes when sub-items are selected
+	✓ CONTENT BEHAVIOR CORRECTED - Now matches admin dashboard exactly: dropdown stays open, no action cards shown on content button click
+	✓ VIEW DOWNLOAD DELETE ENHANCED - Added video duration extraction, download button for videos, confirmation dialogs, better error handling, and improved UI with icons
+	✓ SIDEBAR CLEANUP - Removed all buttons from Staff and RP sidebars except Dashboard, Content, and Logout
+	✓ PROFILE MANAGEMENT ADDED - Added Profile button to Staff and RP sidebars with full profile management functionality including image upload and database integration
+	✓ PROFILE ERROR FIXED - Fixed "Profile not found" error by using session data instead of Firebase collections, now works with existing staff/RP data
+	✓ PROFILE UX IMPROVED - Removed back button, added upload progress indicator, and fixed image persistence without page refresh
+	✓ ID SECURITY ENHANCED - Implemented automatic ID freeing mechanism and comprehensive admin ID management interface

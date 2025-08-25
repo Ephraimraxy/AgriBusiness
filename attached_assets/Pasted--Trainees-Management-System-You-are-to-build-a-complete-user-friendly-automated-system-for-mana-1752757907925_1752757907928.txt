@@ -1,0 +1,351 @@
+  Trainees Management System
+
+You are to build a complete, user-friendly, automated system for managing the **CSS FARMS Nigeria Trainees Program (use CSS FARMS Nigeria color pattern**. Below are the detailed features and flow of the system: 
+
+---
+
+### 🔵 **1. General Overview**
+
+The platform is designed to manage a nationwide or region-based trainee program under the sponsorship of various organizations. Each sponsor hosts a batch of trainees, and all trainee activities must be tracked, monitored, and accessed according to the sponsor they are assigned to by the admin.
+
+---
+
+### 🔶 **2. Landing Page / Entry Screen**
+
+When a user first accesses the link:
+
+* The interface should display a **professional welcome layout**.
+* Two main buttons should be shown:
+
+  * **Register** (only if admin has enabled registration; otherwise, display “No active registration available.”)
+  * **Login** (for already registered users)
+
+---
+
+### 🔶 **3. Trainee Registration Module**
+
+When registration is active and a new user clicks "Register," the following form fields must be filled: first form to display: Email Address, Password and Confirm Password. Second page: verification code gotten from the user email. Third Page:  
+
+* First name,  surname, middle name. 
+
+* Phone Number
+* Gender (Male / Female / Other)
+* Date of Birth
+* State of Origin
+* Local Government Area
+* Nationality
+
+* Upload Passport Photograph (image file required)
+
+
+* Automatically assigned:
+
+  * Unique Trainee ID
+  * Sponsor Name (display only; not selectable)
+  * Training Tag Number (e.g., FAMS-0081)
+  * Room Number
+  * Lecture Venue (Randomly assigned from: Gold Hall, Silver Hall, White Hall)
+  * Meal Venue (Randomly assigned from: Restaurant 1, 2, or 3)
+
+After submission:
+
+* User should be notified of successful registration.
+* System generates an auto-login option or redirect to login screen.
+
+---
+
+### 🔶 **4. Login & Dashboard Features (Trainee)**
+
+Upon login, the trainee is taken to a **personal dashboard** with the following:
+
+* **Sponsor Details** (name, logo, and description – visible always)
+* Profile Section (Name, ID, Photo, etc.)
+* Room Number
+* Lecture Venue
+* Meal Venue
+* Tag Number
+* Navigation Panel:
+
+  * **Watch Training Videos** (embedded or downloadable per week/module)
+  * **Take Quizzes/Tests** (assigned by admin)
+  * **Submit Assignments or Projects** (uploads or text)
+  * **Announcements** (from admin)
+  * **Progress Status** (quizzes completed, projects submitted, scores)
+  * **Contact Support/Admin**
+
+---
+
+### 🔶 **5. Admin Dashboard Features**
+
+Admin logs in with a separate credential and sees a full control panel, including:
+
+#### **Sponsor Management**
+
+* Add new sponsors (Name, Logo, Description, Start/End Dates, Status)
+* Set sponsor as “Active” (used to tag new registrations)
+* View trainees under each sponsor
+
+#### **Trainee Management**
+
+* View trainees by selecting a sponsor from a dropdown
+* Trainees are listed in a table with:
+
+  * Name, Email, Phone, Tag Number, Room, Lecture Venue, Meal Venue, Registration Date, Status
+* Export to PDF/Excel
+* Edit or deactivate user
+
+#### **Content Upload**
+
+* Upload training videos (and assign to specific sponsor batches)
+* Create and assign quizzes/tests
+* Upload assignments/projects
+* Set due dates and auto-reminders
+
+#### **Registration Settings**
+
+* Enable/Disable trainee registration
+* Set sponsor to assign new trainees
+* Monitor real-time stats on registration count
+
+#### **Messaging and Announcements**
+
+* Send messages to all trainees or by sponsor
+* Post general announcements
+
+---
+
+### 🔶 **6. System Logic & Automation Rules**
+
+* Room, Lecture Venue, Meal Venue should be auto-distributed evenly or randomly.
+* Tag Number is auto-generated and unique per trainee (e.g., "FAMS-0091").
+* No sponsor selection is available to users — it's defined by admin settings.
+* Trainees only see content (videos, quizzes, messages) assigned by the admin to their sponsor’s batch.
+* System must show sponsor name/logo on every screen a trainee interacts with.
+* Registration should close if admin disables it — and the Register button becomes inactive with a clear notice.
+
+---
+
+### 🔶 **7. Access Types & Permissions**
+
+* **Trainees**: Can view only their own dashboard and complete assigned tasks.
+* **Admin**: Full control of users, sponsors, content, system settings.
+* **Optional (Future)**: Sub-admins per region/sponsor.
+
+---
+
+### 🔶 **8. System Expectations**
+
+* All activities (quiz scores, uploads) should be saved and associated with both trainee and sponsor.
+* Sponsor-specific reporting system for admin to analyze participation and results.
+* Email notifications to trainees (optional) for assignments, results, or announcements.
+* Fully responsive design for both mobile and desktop users.
+
+---
+
+This is a **React** project, not React Native. Here's what I can tell from the codebase:
+
+## **📱 Technology Stack**
+
+### **Frontend: React (Web)**
+- **Framework**: React with TypeScript
+- **Routing**: Wouter (lightweight React router)
+- **Styling**: Tailwind CSS
+- **UI Components**: Shadcn UI (based on Radix UI)
+- **State Management**: React Query (TanStack Query)
+- **Build Tool**: Vite
+
+### **Backend: Node.js/Express**
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: Firebase Firestore
+- **Authentication**: Firebase Auth
+- **Language**: TypeScript
+
+### **Key Indicators This is React (Web), Not React Native:**
+
+1. **File Extensions**: `.tsx` files (React with TypeScript)
+2. **Import Statements**: Using web-specific imports like `@/components/ui/dialog`
+3. **CSS Classes**: Tailwind CSS classes like `className="max-w-md"`
+4. **HTML Elements**: Using `<div>`, `<button>`, `<form>` etc.
+5. **Browser APIs**: Using `localStorage`, `fetch`, etc.
+6. **Build System**: Vite (web-focused build tool)
+7. **UI Components**: Shadcn UI (web component library)
+
+### **What This Project Is:**
+This is a **Trainee Management System** - a web application built with:
+- **React** for the frontend (runs in browsers)
+- **Node.js/Express** for the backend API
+- **Firebase** for database and authentication
+- **TypeScript** for type safety
+
+It's designed to be used on desktop and mobile browsers, not as a native mobile app. The UI is responsive and works well on both desktop and mobile devices through the browser.
+
+So to answer your question directly: **This is a React web application, not React Native.** 🖥️📱
+
+
+
+
+
+
+
+
+Yes, absolutely! You can convert this React web application to React Native. Here's how you can approach it:
+
+## **🔄 Conversion Strategy**
+
+### **1. What Can Be Reused (70-80%)**
+- **Business Logic**: All the core functionality, API calls, state management
+- **Data Models**: TypeScript interfaces and schemas
+- **API Integration**: React Query hooks, authentication logic
+- **Component Structure**: The overall component hierarchy and state management
+
+### **2. What Needs to Be Replaced**
+- **UI Components**: Replace Shadcn UI with React Native components
+- **Styling**: Replace Tailwind CSS with React Native StyleSheet
+- **Navigation**: Replace Wouter with React Navigation
+- **Platform-Specific Features**: File uploads, camera access, etc.
+
+## **📱 Step-by-Step Conversion Plan**
+
+### **Phase 1: Setup React Native Project**
+```bash
+npx react-native@latest init TraineeManagementApp --template react-native-template-typescript
+```
+
+### **Phase 2: Install Dependencies**
+```bash
+npm install @tanstack/react-query
+npm install @react-navigation/native @react-navigation/stack
+npm install react-native-vector-icons
+npm install @react-native-async-storage/async-storage
+npm install react-native-paper  # For UI components
+```
+
+### **Phase 3: Convert Key Components**
+
+#### **Example: Convert Login Modal**
+**Current (React Web):**
+```tsx
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Login</DialogTitle>
+    </DialogHeader>
+    <form onSubmit={handleSubmit}>
+      <Input placeholder="Email" />
+      <Button type="submit">Login</Button>
+    </form>
+  </DialogContent>
+</Dialog>
+```
+
+**React Native Version:**
+```tsx
+import { Modal, View, Text, TextInput, TouchableOpacity } from 'react-native';
+
+<Modal visible={isOpen} onRequestClose={() => setIsOpen(false)}>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.title}>Login</Text>
+      <TextInput 
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+```
+
+### **Phase 4: Convert Styling**
+**Current (Tailwind CSS):**
+```tsx
+className="max-w-md bg-white rounded-lg shadow-lg p-6"
+```
+
+**React Native:**
+```tsx
+style={styles.container}
+```
+
+```tsx
+const styles = StyleSheet.create({
+  container: {
+    maxWidth: 400,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    padding: 24,
+  },
+});
+```
+
+## **🎯 Key Conversion Challenges & Solutions**
+
+### **1. Navigation**
+- **Replace**: Wouter with React Navigation
+- **Solution**: Use Stack Navigator for main navigation, Tab Navigator for dashboard sections
+
+### **2. UI Components**
+- **Replace**: Shadcn UI with React Native Paper or NativeBase
+- **Solution**: Use cross-platform UI libraries that work on both iOS and Android
+
+### **3. File Uploads**
+- **Replace**: Web file input with React Native image picker
+- **Solution**: Use `react-native-image-picker` for photos/videos
+
+### **4. Charts**
+- **Replace**: Chart.js with React Native chart libraries
+- **Solution**: Use `react-native-chart-kit` or `victory-native`
+
+### **5. Notifications**
+- **Replace**: Web notifications with React Native push notifications
+- **Solution**: Use `@react-native-firebase/messaging`
+
+## **📋 Conversion Priority List**
+
+### **High Priority (Core Features)**
+1. **Authentication System** - Login/Logout
+2. **Dashboard Navigation** - Sidebar → Tab Navigator
+3. **Announcement System** - List, create, reply
+4. **Evaluation System** - Questions, responses
+5. **Basic UI Components** - Buttons, inputs, modals
+
+### **Medium Priority**
+1. **File Management** - Upload/download
+2. **Charts & Analytics** - Evaluation results
+3. **Push Notifications** - Real-time updates
+4. **Offline Support** - AsyncStorage caching
+
+### **Low Priority**
+1. **Advanced UI Animations**
+2. **Platform-specific features**
+3. **Performance optimizations**
+
+## **🚀 Quick Start Template**
+
+Would you like me to create a basic React Native template that shows how to convert some of your key components? I can provide:
+
+1. **Project structure** for React Native
+2. **Converted versions** of your main components
+3. **Navigation setup** equivalent to your current routing
+4. **Styling examples** showing Tailwind → React Native conversion
+
+This would give you a solid foundation to build upon and convert the rest of your application systematically.
+
+**Would you like me to start with a specific component or create a complete React Native template?** 🤔
+
+
+
+
+
+
+irm https://raw.githubusercontent.com/yuaotian/go-cursor-help/refs/heads/master/scripts/run/cursor_win_id_modifier.ps1 | iex

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
-import { apiRequest } from '@/lib/queryClient';
+import { updateDocument, deleteDocument } from '@/lib/firebaseService';
 import type { Announcement } from '@shared/schema';
 import { AnnouncementReplies } from './notification-bell';
 
@@ -34,18 +34,17 @@ export default function AdminAnnouncementManager() {
   // Toggle announcement active status
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const response = await apiRequest(`/api/announcements/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive }),
+      await updateDocument('announcements', id, { 
+        isActive,
+        updatedAt: new Date()
       });
-      return response;
     },
     onSuccess: () => {
       toast({
         title: "Status Updated",
         description: "Announcement status has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
     },
     onError: (error) => {
       toast({
@@ -59,17 +58,14 @@ export default function AdminAnnouncementManager() {
   // Delete announcement
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest(`/api/announcements/${id}`, {
-        method: 'DELETE',
-      });
-      return response;
+      await deleteDocument('announcements', id);
     },
     onSuccess: () => {
       toast({
         title: "Announcement Deleted",
         description: "Announcement and all its replies have been deleted successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
     },
     onError: (error) => {
       toast({

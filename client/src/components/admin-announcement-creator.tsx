@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { apiRequest } from '@/lib/queryClient';
+import { createDocument } from '@/lib/firebaseService';
 
 interface AdminAnnouncementCreatorProps {
   onClose?: () => void;
@@ -46,17 +46,18 @@ export default function AdminAnnouncementCreator({ onClose }: AdminAnnouncementC
   // Create announcement mutation
   const createAnnouncementMutation = useMutation({
     mutationFn: async (announcementData: Omit<AnnouncementForm, 'isGlobal'>) => {
-             const payload = {
-         ...announcementData,
-         sponsorId: announcementData.sponsorId === 'all' ? undefined : announcementData.sponsorId || undefined, // Convert 'all' to undefined for global
-       };
+      const payload = {
+        ...announcementData,
+        sponsorId: announcementData.sponsorId === 'all' ? undefined : announcementData.sponsorId || undefined,
+        createdAt: new Date(),
+        createdBy: user?.uid || 'admin',
+        createdByName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Admin'
+      };
       
       console.log('Creating announcement with payload:', payload);
       
-      const response = await apiRequest('/api/announcements', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      // Create announcement in Firebase
+      const response = await createDocument('announcements', payload);
       
       return response;
     },
@@ -67,16 +68,16 @@ export default function AdminAnnouncementCreator({ onClose }: AdminAnnouncementC
       });
       
       // Invalidate announcements cache to refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
       
-             // Reset form
-       setForm({
-         title: '',
-         message: '',
-         sponsorId: 'all',
-         isActive: true,
-         isGlobal: false,
-       });
+      // Reset form
+      setForm({
+        title: '',
+        message: '',
+        sponsorId: 'all',
+        isActive: true,
+        isGlobal: false,
+      });
       
       if (onClose) {
         onClose();

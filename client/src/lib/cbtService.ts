@@ -265,6 +265,16 @@ export const updateCBTExam = async (id: string, exam: Partial<Omit<CBTExam, 'id'
   }
 };
 
+export const deleteCBTExam = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, CBT_EXAMS_COLLECTION, id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting CBT exam:', error);
+    throw error;
+  }
+};
+
 export const getCBTExams = async (): Promise<CBTExam[]> => {
   try {
     const q = query(

@@ -14,19 +14,15 @@ import { ArrowLeft, Calendar, Clock, FileText, Edit, Trash2 } from "lucide-react
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { 
+  getCBTExams, 
+  updateCBTExam, 
+  deleteCBTExam,
+  CBTExam 
+} from "@/lib/cbtService";
 
-// Minimal local Exam type – replace with shared type when available
-export type Exam = {
-  id: number;
-  title: string;
-  description?: string;
-  duration: number;
-  startTime: string | Date;
-  endTime: string | Date;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  isActive: boolean;
-};
+// Use Firebase types
+export type Exam = CBTExam;
 
 interface AdminExamRecordsProps {
   onBack?: () => void;
@@ -40,28 +36,17 @@ export default function AdminExamRecords({ onBack, embedded = true }: AdminExamR
 
 
   const { data: exams = [], isLoading } = useQuery<Exam[]>({
-    queryKey: ["/api/exams"],
+    queryKey: ["cbt-exams"],
+    queryFn: () => getCBTExams(),
   });
 
   // Toggle publish/unpublish mutation
   const togglePublishMutation = useMutation({
-    mutationFn: async ({ examId, isActive }: { examId: number; isActive: boolean }) => {
-      const response = await fetch(`/api/exams/${examId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update exam status');
-      }
-      
-      return response.json();
+    mutationFn: async ({ examId, isActive }: { examId: string; isActive: boolean }) => {
+      await updateCBTExam(examId, { isActive });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      queryClient.invalidateQueries({ queryKey: ["cbt-exams"] });
       toast({
         title: "Success",
         description: "Exam status updated successfully",
@@ -78,23 +63,11 @@ export default function AdminExamRecords({ onBack, embedded = true }: AdminExamR
 
   // Update exam mutation
   const updateExamMutation = useMutation({
-    mutationFn: async ({ examId, data }: { examId: number; data: Partial<Exam> }) => {
-      const response = await fetch(`/api/exams/${examId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update exam');
-      }
-      
-      return response.json();
+    mutationFn: async ({ examId, data }: { examId: string; data: Partial<Exam> }) => {
+      await updateCBTExam(examId, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      queryClient.invalidateQueries({ queryKey: ["cbt-exams"] });
       setEditingExam(null);
       setEditData({});
       toast({
@@ -113,17 +86,11 @@ export default function AdminExamRecords({ onBack, embedded = true }: AdminExamR
 
   // Delete exam mutation
   const deleteExamMutation = useMutation({
-    mutationFn: async (examId: number) => {
-      const response = await fetch(`/api/exams/${examId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete exam');
-      }
+    mutationFn: async (examId: string) => {
+      await deleteCBTExam(examId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      queryClient.invalidateQueries({ queryKey: ["cbt-exams"] });
       toast({
         title: "Success",
         description: "Exam deleted successfully",
@@ -151,15 +118,15 @@ export default function AdminExamRecords({ onBack, embedded = true }: AdminExamR
 
   const handleEdit = (exam: Exam) => {
     // Navigate to exam setup page to edit questions
-    navigate(`/admin-exam-setup?examId=${exam.id}`);
+    navigate(`/admin-exam-setup/${exam.id}`);
   };
 
-  const handleSave = (examId: number) => {
+  const handleSave = (examId: string) => {
     // This function is no longer needed since we navigate to edit page
     // Keeping it for potential future use
   };
 
-  const handleDelete = (examId: number) => {
+  const handleDelete = (examId: string) => {
     if (window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
       deleteExamMutation.mutate(examId);
     }

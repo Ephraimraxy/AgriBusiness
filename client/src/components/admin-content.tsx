@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Content, Sponsor } from "@shared/schema";
 
 import { useContent } from "@/hooks/useContent";
-import { apiRequest } from "@/lib/queryClient";
+import { createDocument, updateDocument } from "@/lib/firebaseService";
 import { storage as fbStorage } from "@/lib/firebase";
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
@@ -35,10 +35,17 @@ export default function AdminContent() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: content } = useContent();
-  const { data: sponsors } = useQuery<Sponsor[]>({
-    queryKey: ["/api/sponsors"],
-    retry: false,
-  });
+  // Mock sponsors data (since we don't have backend)
+  const sponsors: Sponsor[] = [
+    {
+      id: '1',
+      name: 'CSS FARMS Nigeria',
+      description: 'Agricultural Training Program',
+      isActive: true,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+    }
+  ];
 
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({
@@ -58,10 +65,10 @@ export default function AdminContent() {
         contentUrl: form.contentUrl || undefined,
         sponsorId: form.sponsorId || undefined,
       } as Partial<Content>;
-      await apiRequest("POST", "/api/content", payload);
+      await createDocument('content', { ...payload, createdAt: new Date(), isActive: true });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+      queryClient.invalidateQueries({ queryKey: ["content"] });
       toast({ title: "Content Added", description: "New content has been added." });
       setShowDialog(false);
       setForm({ title: "", description: "", type: "video", contentUrl: "", sponsorId: "" });
@@ -96,13 +103,15 @@ export default function AdminContent() {
       async () => {
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         const fileType = file.type.startsWith("video") ? "video" : "file";
-        await apiRequest("POST", "/api/content", {
+        await createDocument('content', {
           title: file.name,
           type: fileType,
           contentUrl: downloadURL,
           contentData: { size: file.size },
+          createdAt: new Date(),
+          isActive: true
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+        queryClient.invalidateQueries({ queryKey: ["content"] });
       }
     );
   };
@@ -219,8 +228,8 @@ export default function AdminContent() {
                     </TableCell>
                     <TableCell>
                       <Button size="icon" variant="ghost" onClick={async()=>{
-                        await apiRequest("PATCH", `/api/content/${c.id}`, { isActive: false });
-                        queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+                        await updateDocument('content', c.id, { isActive: false });
+                        queryClient.invalidateQueries({ queryKey: ["content"] });
                       }}>
                         <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>

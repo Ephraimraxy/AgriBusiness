@@ -36,14 +36,18 @@ export default function Header({ variant }: HeaderProps) {
   const handleConfirmLogout = async () => {
     setShowConfirm(false);
     try {
+      // If admin, clear server session first
       if (role === 'admin') {
-        // For admin, redirect to logout page which handles cleanup
-        setLocation("/admin-logout");
-      } else {
-        // For other users, use Firebase signOut
-        await signOut(auth);
-        setLocation("/");
+        try {
+          await fetch((import.meta as any).env?.VITE_API_URL ? `${(import.meta as any).env.VITE_API_URL}/api/admin/logout` : '/api/admin/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          });
+        } catch {}
       }
+      await signOut(auth);
+      setLocation("/");
     } catch (error) {
       console.error("Logout error:", error);
       setLocation("/");

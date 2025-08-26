@@ -278,13 +278,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.get('/api/admin/logout', (req, res) => {
-    const token = req.cookies?.adminToken;
+  app.post('/api/admin/logout', (req, res) => {
+    const token = (req as any).cookies?.adminToken;
     if (token) {
-      destroyAdminSession(token);
-      res.clearCookie('adminToken');
+      try {
+        destroyAdminSession(token);
+      } catch {}
+      res.clearCookie('adminToken', { path: '/', httpOnly: true, sameSite: 'lax' });
     }
-    res.redirect('/');
+    res.status(200).json({ message: 'Logged out' });
   });
 
   // User profile creation route for Firebase Auth

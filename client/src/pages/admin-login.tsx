@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Eye, EyeOff, Shield, Lock, User, RefreshCw, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import CSSFarmsLoader from "@/components/ui/css-farms-loader";
 
 export default function AdminLogin() {
@@ -60,9 +61,9 @@ export default function AdminLogin() {
       // Call the server admin login API
       console.log("Making request to /api/admin/login...");
       
-      // First, test if server is reachable
+      // First, test if server is reachable (via configured API base)
       try {
-        const testResponse = await fetch('/api/admin/me', { method: 'GET' });
+        const testResponse = await apiRequest("GET", "/api/admin/me");
         console.log("Server test response:", testResponse.status);
       } catch (testError) {
         console.log("Server test failed:", testError);
@@ -71,19 +72,11 @@ export default function AdminLogin() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const response = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-          credentials: 'include', // Important: include cookies
-          signal: controller.signal,
-        });
-        
+
+        const response = await apiRequest("POST", "/api/admin/login", { email, password });
+
         clearTimeout(timeoutId);
-        
+
         console.log("Response status:", response.status);
         console.log("Response headers:", response.headers);
         

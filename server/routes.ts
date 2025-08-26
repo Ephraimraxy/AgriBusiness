@@ -233,11 +233,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Set HTTP-only cookie
+      const isProd = process.env.NODE_ENV === 'production';
       res.cookie('adminToken', sessionToken, {
         httpOnly: true,
-        secure: false, // Set to false for development
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        secure: isProd, // required for cross-site cookies
+        sameSite: isProd ? 'none' : 'lax', // allow cross-site in production (Netlify -> Render)
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        path: '/'
       });
 
       const adminSession = verifyAdminSession(sessionToken);
@@ -284,7 +286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         destroyAdminSession(token);
       } catch {}
-      res.clearCookie('adminToken', { path: '/', httpOnly: true, sameSite: 'lax' });
+      const isProd = process.env.NODE_ENV === 'production';
+      res.clearCookie('adminToken', { path: '/', httpOnly: true, sameSite: isProd ? 'none' : 'lax', secure: isProd });
     }
     res.status(200).json({ message: 'Logged out' });
   });

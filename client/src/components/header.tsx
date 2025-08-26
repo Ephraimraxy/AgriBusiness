@@ -36,8 +36,14 @@ export default function Header({ variant }: HeaderProps) {
   const handleConfirmLogout = async () => {
     setShowConfirm(false);
     try {
-      await signOut(auth);
-      setLocation("/");
+      if (role === 'admin') {
+        // For admin, redirect to logout page which handles cleanup
+        setLocation("/admin-logout");
+      } else {
+        // For other users, use Firebase signOut
+        await signOut(auth);
+        setLocation("/");
+      }
     } catch (error) {
       console.error("Logout error:", error);
       setLocation("/");

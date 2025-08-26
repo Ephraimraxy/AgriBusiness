@@ -634,8 +634,9 @@ export default function NotificationBell({ variant = 'trainee' }: NotificationBe
   // Fetch announcements based on user type
   const sponsorId = currentVariant === 'trainee' ? (user as any)?.trainee?.sponsorId : undefined;
   const { data: announcements = [], isLoading } = useAnnouncements(sponsorId, {
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 15000, // Consider data stale after 15 seconds
+    refetchInterval: 60000, // Refresh every 60 seconds (reduced from 30)
+    staleTime: 30000, // Consider data stale after 30 seconds (increased from 15)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Fetch trainee data for proper user ID
@@ -656,8 +657,9 @@ export default function NotificationBell({ variant = 'trainee' }: NotificationBe
       return null;
     },
     enabled: !!user?.email && currentVariant === 'trainee',
-    staleTime: 0,
-    refetchInterval: 10000, // Refresh every 10 seconds for live updates
+    staleTime: 30000, // Consider data stale after 30 seconds
+    refetchInterval: 60000, // Refresh every 60 seconds (reduced from 10)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Fetch RP/Staff data for proper user ID
@@ -709,8 +711,9 @@ export default function NotificationBell({ variant = 'trainee' }: NotificationBe
       return null;
     },
     enabled: currentVariant === 'admin',
-    staleTime: 0,
-    refetchInterval: 10000, // Refresh every 10 seconds for live updates
+    staleTime: 30000, // Consider data stale after 30 seconds
+    refetchInterval: 60000, // Refresh every 60 seconds (reduced from 10)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Fetch notifications for the current user
@@ -797,8 +800,9 @@ export default function NotificationBell({ variant = 'trainee' }: NotificationBe
       }
     },
     enabled: !!userId,
-    staleTime: 0,
-    refetchInterval: 10000, // Refresh every 10 seconds for live updates
+    staleTime: 30000, // Consider data stale after 30 seconds
+    refetchInterval: 60000, // Refresh every 60 seconds (reduced from 10)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const { data: unreadCount = 0 } = useUnreadNotificationCount(userId || '');

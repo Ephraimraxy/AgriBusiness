@@ -15,6 +15,7 @@ import Register from "@/pages/register";
 import TraineeDashboard from "@/pages/trainee-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminLogin from "@/pages/admin-login";
+import AdminLogout from "@/pages/admin-logout";
 import VideoDetails from "@/pages/video-details";
 import FileDetails from "@/pages/file-details";
 import Exams from "@/pages/exams";
@@ -91,6 +92,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/register" component={Register} />
       <Route path="/admin-login" component={AdminLogin} />
+      <Route path="/admin-logout" component={AdminLogout} />
       <Route path="/admin-dashboard" component={AdminDashboard} />
       <Route path="/123456" component={AdminLogin} />
       <Route path="/admin/view-trainees" component={ViewTraineesAdvanced} />

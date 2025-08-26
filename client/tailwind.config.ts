@@ -1,14 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./src/**/*.html",
-    "./src/**/*.vue",
-    "./src/**/*.jsx",
-    "./src/**/*.tsx"
-  ],
+  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
       borderRadius: {

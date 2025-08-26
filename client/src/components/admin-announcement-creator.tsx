@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { createDocument } from '@/lib/firebaseService';
+import { apiRequest } from '@/lib/queryClient';
 
 interface AdminAnnouncementCreatorProps {
   onClose?: () => void;
@@ -46,18 +46,17 @@ export default function AdminAnnouncementCreator({ onClose }: AdminAnnouncementC
   // Create announcement mutation
   const createAnnouncementMutation = useMutation({
     mutationFn: async (announcementData: Omit<AnnouncementForm, 'isGlobal'>) => {
-      const payload = {
-        ...announcementData,
-        sponsorId: announcementData.sponsorId === 'all' ? undefined : announcementData.sponsorId || undefined,
-        createdAt: new Date(),
-        createdBy: user?.uid || 'admin',
-        createdByName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Admin'
-      };
+             const payload = {
+         ...announcementData,
+         sponsorId: announcementData.sponsorId === 'all' ? undefined : announcementData.sponsorId || undefined, // Convert 'all' to undefined for global
+       };
       
       console.log('Creating announcement with payload:', payload);
       
-      // Create announcement in Firebase
-      const response = await createDocument('announcements', payload);
+      const response = await apiRequest('/api/announcements', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
       
       return response;
     },
@@ -68,16 +67,16 @@ export default function AdminAnnouncementCreator({ onClose }: AdminAnnouncementC
       });
       
       // Invalidate announcements cache to refresh
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
       
-      // Reset form
-      setForm({
-        title: '',
-        message: '',
-        sponsorId: 'all',
-        isActive: true,
-        isGlobal: false,
-      });
+             // Reset form
+       setForm({
+         title: '',
+         message: '',
+         sponsorId: 'all',
+         isActive: true,
+         isGlobal: false,
+       });
       
       if (onClose) {
         onClose();

@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import * as XLSX from 'xlsx';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
+import { apiRequest } from "@/lib/queryClient";
 import { 
   createDocument, 
   EvaluationQuestion, 
@@ -581,37 +581,45 @@ export default function AdminDashboard() {
     setShowQuestionModal(false);
   };
 
-  // Get user from localStorage (set during login)
-  const user = adminUser;
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+  });
 
-  // Mock registration settings (since we don't have backend)
-  const [registrationEnabled, setRegistrationEnabled] = useState<{ value: string }>({ value: 'true' });
-  const [staffRegistrationEnabled, setStaffRegistrationEnabled] = useState<{ value: string }>({ value: 'true' });
-  const [rpRegistrationEnabled, setRpRegistrationEnabled] = useState<{ value: string }>({ value: 'true' });
+  const { data: registrationEnabled } = useQuery<{ value: string } | undefined>({
+    queryKey: ["/api/settings/registration_enabled"],
+    retry: false,
+  });
 
-  // Mock sponsors data
-  const [sponsors, setSponsors] = useState<Sponsor[]>([
-    {
-      id: '1',
-      name: 'CSS FARMS Nigeria',
-      description: 'Agricultural Training Program',
-      isActive: true,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ]);
+  const { data: staffRegistrationEnabled } = useQuery<{ value: string } | undefined>({
+    queryKey: ["/api/settings/staff_registration_enabled"],
+    retry: false,
+  });
 
-  const activeSponsor = sponsors.find(s => s.isActive);
+  const { data: rpRegistrationEnabled } = useQuery<{ value: string } | undefined>({
+    queryKey: ["/api/settings/rp_registration_enabled"],
+    retry: false,
+  });
 
-  // Calculate statistics from Firebase data
-  const statistics: Statistics = {
-    totalTrainees: advancedTrainees.length,
-    activeSponsors: sponsors.filter(s => s.isActive).length,
-    completedCourses: Math.floor(advancedTrainees.length * 0.3), // Mock: 30% completion rate
-    activeContent: 15 // Mock: assume 15 active content items
-  };
+  const { data: sponsors } = useQuery<Sponsor[]>({
+    queryKey: ["/api/sponsors"],
+    retry: false,
+  });
 
-  const trainees = advancedTrainees;
+  const { data: activeSponsor } = useQuery<Sponsor | undefined>({
+    queryKey: ["/api/sponsors/active"],
+    retry: false,
+  });
+
+  const { data: statistics } = useQuery<Statistics>({
+    queryKey: ["/api/statistics"],
+    retry: false,
+  });
+
+  const { data: trainees } = useQuery<Trainee[]>({
+    queryKey: ["/api/trainees"],
+    retry: false,
+  });
 
   // Trainee management queries
   const { data: advancedTrainees = [], isLoading: traineesLoading, error: traineesError } = useQuery({
@@ -822,26 +830,27 @@ export default function AdminDashboard() {
 
   const registrationToggleMutation = useMutation({
     mutationFn: async (data: { enabled: boolean; sponsorId?: string }) => {
-      // Update local state instead of backend API
-      setRegistrationEnabled({ value: data.enabled.toString() });
-      
+      // Update registration enabled status
+      await apiRequest("POST", "/api/settings", {
+        key: "registration_enabled",
+        value: data.enabled.toString()
+      });
+
       // If enabling registration and sponsor is selected, set as active sponsor
       if (data.enabled && data.sponsorId) {
-        setSponsors(prev => prev.map(sponsor => 
-          sponsor.id === data.sponsorId 
-            ? { ...sponsor, isActive: true }
-            : { ...sponsor, isActive: false }
-        ));
+        await apiRequest("PATCH", `/api/sponsors/${data.sponsorId}`, {
+          isActive: true
+        });
       }
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/registration_enabled"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sponsors/active"] });
       toast({
         title: "Registration Updated",
         description: "Registration settings have been updated successfully.",
       });
+
     },
     onError: (error) => {
       toast({
@@ -855,14 +864,14 @@ export default function AdminDashboard() {
   // Staff Registration Toggle Mutation
   const staffRegistrationToggleMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      // Update local state instead of backend API
-      setStaffRegistrationEnabled({ value: enabled.toString() });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await apiRequest("POST", "/api/settings", {
+        key: "staff_registration_enabled",
+        value: enabled.toString()
+      });
       return enabled;
     },
     onSuccess: (enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/staff_registration_enabled"] });
       toast({
         title: "Staff Registration Updated",
         description: `Staff registration has been ${enabled ? "enabled" : "disabled"} successfully.`,
@@ -880,14 +889,14 @@ export default function AdminDashboard() {
   // Resource Person Registration Toggle Mutation
   const rpRegistrationToggleMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      // Update local state instead of backend API
-      setRpRegistrationEnabled({ value: enabled.toString() });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await apiRequest("POST", "/api/settings", {
+        key: "rp_registration_enabled",
+        value: enabled.toString()
+      });
       return enabled;
     },
     onSuccess: (enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/rp_registration_enabled"] });
       toast({
         title: "Resource Person Registration Updated",
         description: `Resource Person registration has been ${enabled ? "enabled" : "disabled"} successfully.`,
@@ -1194,37 +1203,21 @@ export default function AdminDashboard() {
     }
   };
 
-  // Check admin authentication via localStorage and Firebase
-  const [adminUser, setAdminUser] = useState<any>(null);
-  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+  // Check admin authentication via cookie/session instead of Firebase user
+  const { data: adminUser, isLoading: isCheckingAdmin, isError } = useQuery({
+    queryKey: ["/api/admin/me"],
+    queryFn: async () => {
+      return await apiRequest("GET", "/api/admin/me");
+    },
+    retry: false
+  });
 
-  useEffect(() => {
-    const checkAdminAuth = () => {
-      const isAuthenticated = localStorage.getItem('adminAuthenticated');
-      const adminEmail = localStorage.getItem('adminEmail');
-      const adminUserData = localStorage.getItem('adminUser');
-      
-      if (isAuthenticated === 'true' && adminEmail && adminUserData) {
-        try {
-          const userData = JSON.parse(adminUserData);
-          setAdminUser(userData);
-        } catch (error) {
-          console.error('Error parsing admin user data:', error);
-          localStorage.removeItem('adminAuthenticated');
-          localStorage.removeItem('adminEmail');
-          localStorage.removeItem('adminUser');
-          navigate("/admin-login");
-        }
-      } else {
-        navigate("/admin-login");
-      }
-      setIsCheckingAdmin(false);
-    };
+  // Handle authentication errors
+  if (isError) {
+    navigate("/admin-login");
+    return null;
+  }
 
-    checkAdminAuth();
-  }, [navigate]);
-
-  // Handle authentication loading
   if (isCheckingAdmin) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }

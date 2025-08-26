@@ -19,26 +19,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Download, ArrowLeft, Users } from "lucide-react";
-import { 
-  getCBTExams, 
-  getCBTExamAttempts, 
-  CBTExam, 
-  CBTExamAttempt 
-} from "@/lib/cbtService";
+// Local minimal types (replace with real shared types when available)
+ type Exam = {
+   id: number;
+   title: string;
+ };
 
-// Use Firebase types
-type Exam = CBTExam;
+ interface AttemptWithStudent {
+   studentName: string;
+   studentEmail: string;
+   percentage: number;
+   score?: number;
+   totalQuestions?: number;
+   startedAt: string | Date;
+   submittedAt?: string | Date | null;
+   isSubmitted?: boolean;
+ }
 
-interface AttemptWithStudent {
-  studentName: string;
-  studentEmail: string;
-  percentage: number;
-  score?: number;
-  totalQuestions?: number;
-  startedAt: string | Date;
-  submittedAt?: string | Date | null;
-  isSubmitted?: boolean;
-}
 
 interface ResultsData {
   exam: Exam;
@@ -61,41 +58,12 @@ export default function AdminExamResults({ onBack, embedded = true }: AdminExamR
   const effectiveExamId = examIdFromUrl || selectedExamId;
 
   const { data: exams = [], isLoading: examsLoading } = useQuery<Exam[]>({
-    queryKey: ["cbt-exams"],
-    queryFn: () => getCBTExams(),
+    queryKey: ["/api/exams"],
   });
 
   const { data: results, isLoading: resultsLoading } = useQuery<ResultsData>({
-    queryKey: ["cbt-exam-results", effectiveExamId],
-    queryFn: async () => {
-      if (!effectiveExamId) return null;
-      
-      // Get the exam
-      const exam = exams.find(e => e.id === effectiveExamId);
-      if (!exam) return null;
-      
-      // Get all attempts for this exam
-      const allAttempts = await getCBTExamAttempts();
-      const examAttempts = allAttempts.filter(attempt => attempt.examId === effectiveExamId);
-      
-      // Transform attempts to include student info
-      const attemptsWithStudent: AttemptWithStudent[] = examAttempts.map(attempt => ({
-        studentName: attempt.traineeName || "Unknown Student",
-        studentEmail: attempt.traineeEmail || "unknown@example.com",
-        percentage: attempt.score ? Math.round((attempt.score / attempt.totalQuestions) * 100) : 0,
-        score: attempt.score || 0,
-        totalQuestions: attempt.totalQuestions || 0,
-        startedAt: attempt.startTime,
-        submittedAt: attempt.endTime,
-        isSubmitted: attempt.status === 'completed',
-      }));
-      
-      return {
-        exam,
-        attempts: attemptsWithStudent,
-      };
-    },
-    enabled: !!effectiveExamId && exams.length > 0,
+    queryKey: ["/api/results", effectiveExamId],
+    enabled: !!effectiveExamId,
   });
 
   const handleExportCSV = () => {
@@ -184,7 +152,7 @@ export default function AdminExamResults({ onBack, embedded = true }: AdminExamR
               </SelectTrigger>
               <SelectContent>
                 {exams.map((exam) => (
-                  <SelectItem value={exam.id} key={exam.id}>
+                  <SelectItem value={exam.id.toString()} key={exam.id}>
                     {exam.title}
                   </SelectItem>
                 ))}

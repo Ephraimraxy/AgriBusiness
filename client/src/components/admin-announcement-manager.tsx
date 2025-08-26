@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
-import { updateDocument, deleteDocument } from '@/lib/firebaseService';
+import { apiRequest } from '@/lib/queryClient';
 import type { Announcement } from '@shared/schema';
 import { AnnouncementReplies } from './notification-bell';
 
@@ -34,17 +34,18 @@ export default function AdminAnnouncementManager() {
   // Toggle announcement active status
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      await updateDocument('announcements', id, { 
-        isActive,
-        updatedAt: new Date()
+      const response = await apiRequest(`/api/announcements/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive }),
       });
+      return response;
     },
     onSuccess: () => {
       toast({
         title: "Status Updated",
         description: "Announcement status has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
     },
     onError: (error) => {
       toast({
@@ -58,14 +59,17 @@ export default function AdminAnnouncementManager() {
   // Delete announcement
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await deleteDocument('announcements', id);
+      const response = await apiRequest(`/api/announcements/${id}`, {
+        method: 'DELETE',
+      });
+      return response;
     },
     onSuccess: () => {
       toast({
         title: "Announcement Deleted",
         description: "Announcement and all its replies have been deleted successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/announcements'] });
     },
     onError: (error) => {
       toast({

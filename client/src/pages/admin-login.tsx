@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Eye, EyeOff, Shield, Lock, User, RefreshCw, AlertCircle } from "lucide-react";
 import CSSFarmsLoader from "@/components/ui/css-farms-loader";
-import { signInWithEmail } from "@/lib/firebaseAuth";
 
 export default function AdminLogin() {
   const [, navigate] = useLocation();
@@ -58,21 +57,56 @@ export default function AdminLogin() {
 
       console.log("Login attempt with:", { email, password });
 
-      // Use Firebase authentication instead of backend API
-      console.log("Authenticating with Firebase...");
+      // Call the server admin login API
+      console.log("Making request to /api/admin/login...");
+      
+      // First, test if server is reachable
+      try {
+        const testResponse = await fetch('/api/admin/me', { method: 'GET' });
+        console.log("Server test response:", testResponse.status);
+      } catch (testError) {
+        console.log("Server test failed:", testError);
+      }
       
       try {
-        const user = await signInWithEmail(email, password);
-        console.log("Firebase authentication successful:", user);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include', // Important: include cookies
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        console.log("Response status:", response.status);
+        console.log("Response headers:", response.headers);
+        
+        if (!response.ok) {
+          console.log("Response not OK, trying to get error data...");
+          let errorData;
+          try {
+            errorData = await response.json();
+            console.log("Error data:", errorData);
+          } catch (parseError) {
+            console.log("Could not parse error response:", parseError);
+            errorData = { message: 'Unknown error occurred' };
+          }
+          throw new Error(errorData.message || 'Login failed');
+        }
+
+        const data = await response.json();
+        console.log("Login successful:", data);
         
         // Store admin info in localStorage for client-side reference
         localStorage.setItem('adminAuthenticated', 'true');
         localStorage.setItem('adminEmail', email);
-        localStorage.setItem('adminUser', JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName
-        }));
+        localStorage.setItem('adminUser', JSON.stringify(data.user));
         
         console.log("Authentication successful, navigating to admin-dashboard...");
         
@@ -81,23 +115,17 @@ export default function AdminLogin() {
         
         console.log("Navigation called");
         
-      } catch (authError: unknown) {
-        console.error("Firebase authentication error:", authError);
-        if (authError instanceof Error) {
-          // Handle common Firebase auth errors
-          if (authError.message.includes('user-not-found')) {
-            throw new Error('No account found with this email address.');
-          } else if (authError.message.includes('wrong-password')) {
-            throw new Error('Incorrect password. Please try again.');
-          } else if (authError.message.includes('invalid-email')) {
-            throw new Error('Invalid email address format.');
-          } else if (authError.message.includes('too-many-requests')) {
-            throw new Error('Too many failed attempts. Please try again later.');
-          } else {
-            throw new Error('Authentication failed. Please check your credentials.');
+      } catch (fetchError: unknown) {
+        console.error("Fetch error:", fetchError);
+        if (fetchError instanceof Error) {
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Request timed out. Please check your connection and try again.');
+          }
+          if (fetchError.message.includes('fetch')) {
+            throw new Error('Network error: Unable to connect to server. Please check your connection and try again.');
           }
         }
-        throw new Error('Authentication failed. Please try again.');
+        throw fetchError;
       }
 
     } catch (error) {

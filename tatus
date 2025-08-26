@@ -1,0 +1,5 @@
+[33m0671572[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add root-level Tailwind and PostCSS configs for dev server
+[33m0028e96[m Fix Tailwind :root selector; resolves border-border error
+[33maa716eb[m Add Vercel configuration for backend deployment
+[33m38721de[m Fix Tailwind CSS config and migrate exam components to Firebase
+[33mb367cb7[m Fix announcement components and remove unused API imports

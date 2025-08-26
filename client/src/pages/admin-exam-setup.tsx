@@ -13,22 +13,26 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { z } from "zod";
-import { 
-  createCBTExam, 
-  updateCBTExam, 
-  getCBTExam, 
-  getCBTExamQuestions,
-  createCBTQuestion,
-  updateCBTQuestion,
-  deleteCBTQuestion,
-  CBTExam,
-  CBTQuestion
-} from "@/lib/cbtService";
-// Use Firebase types from cbtService
-type Exam = CBTExam;
-type Question = CBTQuestion;
+// Local minimal types (replace with real shared types when available)
+type Exam = {
+  id: number;
+  title: string;
+  description?: string;
+  duration: number; // Duration in minutes
+  isActive: boolean;
+};
+
+type Question = {
+  questionText: string;
+  questionType: "mcq" | "true_false" | "fill_blank";
+  options?: string[];
+  correctAnswer: string;
+  points: number;
+  orderIndex: number;
+};
 import Header from "@/components/header";
 import AdminSidebar from "@/components/admin-sidebar";
 
@@ -66,15 +70,15 @@ export default function AdminExamSetup({ embedded = false, ..._rest }: AdminExam
 
   // ----------------- Data fetching -----------------
   const { data: exam, isLoading: examLoading } = useQuery<Exam>({
-    queryKey: ["cbt-exam", examId],
-    queryFn: () => getCBTExam(examId!),
+    queryKey: ["exam", examId],
+    queryFn: () => apiRequest("GET", `/api/exams/${examId}`).then(res => res.json()),
     enabled: isEdit && !!examId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: questions = [], isLoading: questionsLoading } = useQuery<Question[]>({
-    queryKey: ["cbt-exam-questions", examId],
-    queryFn: () => getCBTExamQuestions(examId!),
+    queryKey: ["exam-questions", examId],
+    queryFn: () => apiRequest("GET", `/api/exams/${examId}/questions`).then(res => res.json()),
     enabled: isEdit && !!examId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -130,44 +134,62 @@ export default function AdminExamSetup({ embedded = false, ..._rest }: AdminExam
   const createExamMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
       try {
-        // Create the exam first
-        const examData = {
+        const payload = {
           title: data.title,
-          description: data.description || "",
+          description: data.description,
           duration: data.duration,
           isActive: data.isActive,
-          instructions: "Please read all questions carefully before answering.",
         };
         
-        console.log('Creating CBT exam with data:', examData);
-        const examId = await createCBTExam(examData);
+        console.log('Sending exam creation request with payload:', payload);
+        const res = await apiRequest("POST", "/api/exams", payload);
         
-        // Create questions
-        const questionPromises = data.questions.map(async (q, index) => {
-          const questionData = {
-            examId: examId,
-            questionText: q.questionText,
-            questionType: q.questionType,
-            options: q.options || [],
-            correctAnswer: q.correctAnswer,
-            points: q.points,
-            orderIndex: index,
-            isActive: true,
-          };
-          
-          console.log(`Creating question ${index + 1}:`, questionData);
-          return await createCBTQuestion(questionData);
-        });
+        // First, get the response text to check if it's HTML
+        const responseText = await res.text();
+        console.log('Raw response:', responseText);
+        
+        // Try to parse as JSON
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Failed to parse response as JSON:', e);
+          throw new Error('Server returned an invalid response. Please check the server logs.');
+        }
+        
+        if (!res.ok) {
+          console.error('API error response:', responseData);
+          throw new Error(responseData.message || 'Failed to create exam');
+        }
+        
+        const created = responseData;
+        
+        // Create questions in parallel with error handling
+        const questionPromises = data.questions.map((q, index) => 
+          apiRequest("POST", `/api/exams/${created.id}/questions`, q)
+            .then(async (qRes) => {
+              if (!qRes.ok) {
+                const errorText = await qRes.text();
+                console.error(`Failed to create question ${index + 1}:`, errorText);
+                throw new Error(`Failed to create question ${index + 1}`);
+              }
+              return qRes.json();
+            })
+            .catch(error => {
+              console.error(`Error in question ${index + 1} creation:`, error);
+              throw error;
+            })
+        );
         
         await Promise.all(questionPromises);
-        return { id: examId, ...examData };
+        return created;
       } catch (error) {
         console.error('Exam creation error:', error);
         throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cbt-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
       toast({ title: "Exam Created", description: "New exam has been created successfully." });
       navigate("/admin-dashboard");
     },
@@ -185,40 +207,48 @@ export default function AdminExamSetup({ embedded = false, ..._rest }: AdminExam
       if (!examId) throw new Error('No exam ID provided');
       
       try {
-        // Update the exam
         const updatePayload = {
           title: data.title,
-          description: data.description || "",
+          description: data.description,
           duration: data.duration,
           isActive: data.isActive,
         };
         
-        console.log('Updating CBT exam with data:', updatePayload);
-        await updateCBTExam(examId, updatePayload);
+        console.log('Sending exam update request with payload:', updatePayload);
+        const updateRes = await apiRequest("PUT", `/api/exams/${examId}`, updatePayload);
         
-        // Get existing questions to delete them
-        const existingQuestions = await getCBTExamQuestions(examId);
+        // Get response text first to check if it's HTML
+        const updateResponseText = await updateRes.text();
+        console.log('Raw update response:', updateResponseText);
+        
+        // Try to parse as JSON
+        let updateResponseData;
+        try {
+          updateResponseData = updateResponseText ? JSON.parse(updateResponseText) : {};
+        } catch (e) {
+          console.error('Failed to parse update response as JSON:', e);
+          throw new Error('Server returned an invalid response when updating exam.');
+        }
+        
+        if (!updateRes.ok) {
+          console.error('Exam update API error:', updateResponseData);
+          throw new Error(updateResponseData.message || 'Failed to update exam');
+        }
         
         // Delete existing questions
-        const deletePromises = existingQuestions.map(q => deleteCBTQuestion(q.id));
-        await Promise.all(deletePromises);
+        const deleteRes = await apiRequest("DELETE", `/api/exams/${examId}/questions`);
+        if (!deleteRes.ok) {
+          throw new Error('Failed to clear existing questions');
+        }
         
-        // Create new questions
-        const questionPromises = data.questions.map(async (q, index) => {
-          const questionData = {
-            examId: examId,
-            questionText: q.questionText,
-            questionType: q.questionType,
-            options: q.options || [],
-            correctAnswer: q.correctAnswer,
-            points: q.points,
-            orderIndex: index,
-            isActive: true,
-          };
-          
-          console.log(`Updating question ${index + 1}:`, questionData);
-          return await createCBTQuestion(questionData);
-        });
+        // Create new questions in parallel
+        const questionPromises = data.questions.map(q => 
+          apiRequest("POST", `/api/exams/${examId}/questions`, q)
+            .then(res => {
+              if (!res.ok) throw new Error('Failed to update question');
+              return res.json();
+            })
+        );
         
         await Promise.all(questionPromises);
         return true;
@@ -228,9 +258,8 @@ export default function AdminExamSetup({ embedded = false, ..._rest }: AdminExam
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cbt-exam", examId] });
-      queryClient.invalidateQueries({ queryKey: ["cbt-exam-questions", examId] });
-      queryClient.invalidateQueries({ queryKey: ["cbt-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["exams", examId] });
+      queryClient.invalidateQueries({ queryKey: ["exam-questions", examId] });
       toast({ 
         title: "Exam Updated", 
         description: "Exam has been updated successfully.",

@@ -19,8 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { getTrainees } from "@/lib/firebaseService.traineeview";
-
+import { apiRequest } from "@/lib/queryClient";
 
 interface User {
   id: string;
@@ -50,10 +49,9 @@ export default function AdminCertificateGeneration() {
   const [previewUser, setPreviewUser] = useState<CertificateUser | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Fetch trainees data from Firebase
-  const { data: trainees = [] } = useQuery<User[]>({
-    queryKey: ['trainees'],
-    queryFn: getTrainees,
+  // Fetch trainees data
+  const { data: trainees } = useQuery<User[]>({
+    queryKey: ["/api/trainees"],
     retry: false,
   });
 

@@ -1,6 +1,5 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { registerRoutes } from '../server/routes';
 
 const app = express();
 
@@ -21,12 +20,41 @@ app.use((req, res, next) => {
   }
 });
 
-// Register routes
-registerRoutes(app);
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AgriBusiness Backend is running!' });
+});
+
+// Simple admin login endpoint for testing
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Simple validation
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // For now, just return success (we'll add Firebase auth later)
+    res.json({ 
+      success: true, 
+      message: 'Login successful',
+      user: { email, role: 'admin' }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working!' });
+});
+
+// Catch-all route
+app.get('*', (req, res) => {
+  res.json({ message: 'AgriBusiness Backend', path: req.path });
 });
 
 // Export for Vercel

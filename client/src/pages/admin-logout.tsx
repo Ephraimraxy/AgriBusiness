@@ -9,15 +9,22 @@ export default function AdminLogout() {
   useEffect(() => {
     const handleLogout = async () => {
       try {
-        // Clear localStorage
+        console.log("Starting admin logout process...");
+        
+        // Clear localStorage first
         localStorage.removeItem('adminAuthenticated');
         localStorage.removeItem('adminEmail');
         localStorage.removeItem('adminUser');
+        console.log("LocalStorage cleared");
         
         // Sign out from Firebase
         await signOutUser();
+        console.log("Firebase signout successful");
         
-        console.log("Admin logout successful");
+        // Small delay to ensure cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        console.log("Admin logout successful, redirecting...");
         
         // Redirect to admin login
         navigate("/admin-login");
@@ -27,11 +34,17 @@ export default function AdminLogout() {
         localStorage.removeItem('adminAuthenticated');
         localStorage.removeItem('adminEmail');
         localStorage.removeItem('adminUser');
-        navigate("/admin-login");
+        
+        // Small delay before redirect
+        setTimeout(() => {
+          navigate("/admin-login");
+        }, 500);
       }
     };
 
-    handleLogout();
+    // Small delay before starting logout process
+    const timer = setTimeout(handleLogout, 100);
+    return () => clearTimeout(timer);
   }, [navigate]);
 
   return (

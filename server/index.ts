@@ -2,9 +2,19 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// IMPORTANT: avoid importing from './vite' at the top level to prevent bundling 'vite' in production
 import { initializeFirebase } from "./initialize-firebase";
 import { testEmailConnection } from "./emailService";
+
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
 
 const app = express();
 app.use(express.json());
@@ -20,7 +30,7 @@ app.use((req, res, next) => {
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  } as any;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
@@ -57,19 +67,20 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  // Only setup Vite in development to avoid bundling it in production
+  if (process.env.NODE_ENV !== 'production' && app.get("env") === "development") {
+    const viteMod = await import("./vite.js").catch(() => undefined);
+    if (viteMod && typeof (viteMod as any).setupVite === 'function') {
+      await (viteMod as any).setupVite(app, server);
+      (viteMod as any).log?.("Vite dev middleware enabled", "vite");
+    } else {
+      log("Vite not available; running API only in dev.");
+    }
   } else {
-    serveStatic(app);
+    // In production (Render), we serve API only; frontend is on Netlify
+    log("Production mode: serving API only (no static client)");
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,

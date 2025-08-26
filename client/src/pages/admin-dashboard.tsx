@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -1203,21 +1203,37 @@ export default function AdminDashboard() {
     }
   };
 
-  // Check admin authentication via cookie/session instead of Firebase user
-  const { data: adminUser, isLoading: isCheckingAdmin, isError } = useQuery({
-    queryKey: ["/api/admin/me"],
-    queryFn: async () => {
-      return await apiRequest("GET", "/api/admin/me");
-    },
-    retry: false
-  });
+  // Check admin authentication via localStorage and Firebase
+  const [adminUser, setAdminUser] = useState<any>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
 
-  // Handle authentication errors
-  if (isError) {
-    navigate("/admin-login");
-    return null;
-  }
+  useEffect(() => {
+    const checkAdminAuth = () => {
+      const isAuthenticated = localStorage.getItem('adminAuthenticated');
+      const adminEmail = localStorage.getItem('adminEmail');
+      const adminUserData = localStorage.getItem('adminUser');
+      
+      if (isAuthenticated === 'true' && adminEmail && adminUserData) {
+        try {
+          const userData = JSON.parse(adminUserData);
+          setAdminUser(userData);
+        } catch (error) {
+          console.error('Error parsing admin user data:', error);
+          localStorage.removeItem('adminAuthenticated');
+          localStorage.removeItem('adminEmail');
+          localStorage.removeItem('adminUser');
+          navigate("/admin-login");
+        }
+      } else {
+        navigate("/admin-login");
+      }
+      setIsCheckingAdmin(false);
+    };
 
+    checkAdminAuth();
+  }, [navigate]);
+
+  // Handle authentication loading
   if (isCheckingAdmin) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }

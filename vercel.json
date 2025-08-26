@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "description": "AgriBusiness API deployment",
   "builds": [
     {
       "src": "api/index.ts",

@@ -220,7 +220,7 @@ export default function Header({ variant }: HeaderProps) {
                   )}
                 </div>
               </div>
-              {role === 'admin' && (
+              {false && role === 'admin' && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -235,7 +235,7 @@ export default function Header({ variant }: HeaderProps) {
         </div>
       </header>
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="sm:max-w-sm animate-in zoom-in-95 fade-in-50">
+        <DialogContent className="sm:max-w-sm z-[12000] animate-in zoom-in-95 fade-in-50">
           <DialogHeader>
             <DialogTitle className="text-center">
               <img src="https://cssfarms.ng/wp-content/uploads/2024/12/scrnli_QWDQo0eIg5qH8M.png" alt="Logo" className="h-12 w-auto mx-auto mb-4 animate-bounce" />

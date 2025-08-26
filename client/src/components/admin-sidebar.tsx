@@ -131,9 +131,16 @@ export default function AdminSidebar({ activeSection, onSectionChange, onCollaps
     setShowConfirm(true);
   };
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setShowConfirm(false);
-    window.location.href = "/api/admin/logout";
+    try {
+      await fetch((import.meta as any).env?.VITE_API_URL ? `${(import.meta as any).env.VITE_API_URL}/api/admin/logout` : '/api/admin/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      });
+    } catch {}
+    window.location.href = "/";
   };
 
   const handleCancel = () => setShowConfirm(false);
@@ -289,10 +296,10 @@ export default function AdminSidebar({ activeSection, onSectionChange, onCollaps
         </Button>
       </div>
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="max-w-[80px] animate-in zoom-in-95 fade-in-50" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} aria-describedby="logout-confirmation-description">
+        <DialogContent className="sm:max-w-sm z-[12000] animate-in zoom-in-95 fade-in-50" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} aria-describedby="logout-confirmation-description">
           <DialogHeader>
             <DialogTitle className="text-center">
-              <img src="https://cssfarms.ng/wp-content/uploads/2024/12/scrnli_QWDQo0eIg5qH8M.png" alt="Logo" className="h-12 w-auto mx-auto mb-4 animate-bounce" />
+              <img src="https://cssfarms.ng/wp-content/uploads/2024/12/scrnli_QWDQo0eIg5qH8M.png" alt="Logo" className="h-12 w-auto mx-auto mb-4" />
               Are you sure you want to logout?
             </DialogTitle>
           </DialogHeader>
@@ -300,7 +307,6 @@ export default function AdminSidebar({ activeSection, onSectionChange, onCollaps
             <Button variant="outline" onClick={handleCancel}>Cancel</Button>
             <Button variant="destructive" onClick={handleConfirmLogout}>Logout</Button>
           </div>
-          
           <div id="logout-confirmation-description" className="sr-only">
             Logout confirmation dialog
           </div>

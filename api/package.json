@@ -2,12 +2,17 @@
   "name": "agribusiness-api",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
   "dependencies": {
     "express": "^4.21.2",
     "cookie-parser": "^1.4.7"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/cookie-parser": "^1.4.9"
+    "@types/cookie-parser": "^1.4.9",
+    "typescript": "^5.6.3"
   }
 }

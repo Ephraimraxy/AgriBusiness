@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Loader2, ArrowLeft, ArrowRight, CheckCircle, XCircle, AlertCircle, Mail, Shield, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { getSponsors, type Sponsor as SponsorType } from "@/lib/firebaseService";
 
 // Nigerian States and LGAs
@@ -139,12 +140,13 @@ function EmailValidationModal({
 }) {
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} aria-describedby="email-validation-desc">
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold">
             Email Validation
           </DialogTitle>
         </DialogHeader>
+        <p id="email-validation-desc" className="sr-only">This dialog shows the progress of email validation steps.</p>
         
         <div className="space-y-4">
           <div className="text-center">
@@ -301,11 +303,7 @@ export default function RegistrationWizard({ isOpen, onClose, onSwitchToLogin }:
         s.id === "duplicate" ? { ...s, status: "checking" } : s
       ));
 
-      const response = await fetch('/api/email/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
+      const response = await apiRequest('POST', '/api/email/validate', { email });
 
       if (response.ok) {
         setValidationSteps(prev => prev.map(s => 
@@ -420,11 +418,7 @@ export default function RegistrationWizard({ isOpen, onClose, onSwitchToLogin }:
   // helpers ---------------------------------------------------
   const sendCode = async (email: string, password: string) => {
     try {
-      const res = await fetch("/api/register/step1", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, confirmPassword: password }),
-      });
+      const res = await apiRequest("POST", "/api/register/step1", { email, password, confirmPassword: password });
       
       if (!res.ok) {
         const errorData = await res.json();
@@ -446,11 +440,7 @@ export default function RegistrationWizard({ isOpen, onClose, onSwitchToLogin }:
   };
 
   const verifyCode = async (email: string, code: string) => {
-    const res = await fetch("/api/register/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code }),
-    });
+    const res = await apiRequest("POST", "/api/register/verify", { email, code });
     if (!res.ok) throw new Error((await res.json()).message || "Verification failed");
   };
 
@@ -642,12 +632,13 @@ export default function RegistrationWizard({ isOpen, onClose, onSwitchToLogin }:
   // UI --------------------------------------------------------
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} aria-describedby="trainee-registration-desc">
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-bold">
               Trainee Registration
             </DialogTitle>
           </DialogHeader>
+          <p id="trainee-registration-desc" className="sr-only">Complete the trainee registration steps and verification.</p>
 
           {emailStage === "codeSent" ? (
             <div className="space-y-6">
@@ -671,11 +662,7 @@ export default function RegistrationWizard({ isOpen, onClose, onSwitchToLogin }:
                         try {
                           setIsVerifyingCode(true);
                           const email = form.getValues("email") as string;
-                          const res = await fetch("/api/register/verify", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ email, code: value }),
-                          });
+                          const res = await apiRequest("POST", "/api/register/verify", { email, code: value });
                           if (!res.ok) {
                             const err = await res.json().catch(() => ({}));
                             throw new Error(err?.message || "Invalid or expired code");

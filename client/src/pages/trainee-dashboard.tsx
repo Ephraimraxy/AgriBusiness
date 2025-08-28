@@ -161,7 +161,7 @@ export default function TraineeDashboard() {
     enabled: Boolean(traineeId),
   });
 
-  // Fetch current trainee record to reflect live tagNumber changes
+  // Fetch current trainee record from backend to reflect live allocation changes
   const { data: myTraineeRecord } = useQuery<Partial<Trainee> | null>({
     queryKey: ["my-trainee-record", user?.email],
     enabled: !!user?.email,
@@ -169,16 +169,35 @@ export default function TraineeDashboard() {
     staleTime: 0,
     queryFn: async () => {
       if (!user?.email) return null;
-      // Try by email first
-      const byEmail = await queryDocuments<Trainee>(TRAINEES_COLLECTION, "email", "==", user.email);
-      if (byEmail.length > 0) return byEmail[0];
-      // If synthetic phone email, derive phone and try by phone
-      if (user.email.endsWith('@phone.cssfarms.local')) {
-        const phoneDigits = user.email.split('@')[0];
-        const byPhone = await queryDocuments<Trainee>(TRAINEES_COLLECTION, "phone", "==", phoneDigits);
-        if (byPhone.length > 0) return byPhone[0];
+      try {
+        const res = await apiRequest("GET", `/api/trainees/me/${encodeURIComponent(user.email)}`);
+        if (!res.ok) {
+          console.warn('Failed to fetch trainee record from backend, falling back to Firebase');
+          // Fallback to Firebase if backend fails
+          const byEmail = await queryDocuments<Trainee>(TRAINEES_COLLECTION, "email", "==", user.email);
+          if (byEmail.length > 0) return byEmail[0];
+          // If synthetic phone email, derive phone and try by phone
+          if (user.email.endsWith('@phone.cssfarms.local')) {
+            const phoneDigits = user.email.split('@')[0];
+            const byPhone = await queryDocuments<Trainee>(TRAINEES_COLLECTION, "phone", "==", phoneDigits);
+            if (byPhone.length > 0) return byPhone[0];
+          }
+          return null;
+        }
+        return res.json();
+      } catch (error) {
+        console.warn('Error fetching trainee record from backend, falling back to Firebase:', error);
+        // Fallback to Firebase if backend fails
+        const byEmail = await queryDocuments<Trainee>(TRAINEES_COLLECTION, "email", "==", user.email);
+        if (byEmail.length > 0) return byEmail[0];
+        // If synthetic phone email, derive phone and try by phone
+        if (user.email.endsWith('@phone.cssfarms.local')) {
+          const phoneDigits = user.email.split('@')[0];
+          const byPhone = await queryDocuments<Trainee>(TRAINEES_COLLECTION, "phone", "==", phoneDigits);
+          if (byPhone.length > 0) return byPhone[0];
+        }
+        return null;
       }
-      return null;
     },
   });
 

@@ -455,6 +455,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trainee can get their own data by email
+  app.get('/api/trainees/me/:email', async (req, res) => {
+    try {
+      const email = req.params.email;
+      const trainee = await storage.getTraineeByEmail(email);
+      
+      if (!trainee) {
+        return res.status(404).json({ message: "Trainee not found" });
+      }
+      
+      res.json(trainee);
+    } catch (error) {
+      console.error("Error fetching trainee by email:", error);
+      res.status(500).json({ message: "Failed to fetch trainee" });
+    }
+  });
+
   // Registration routes
   app.post('/api/register/step1', async (req, res) => {
     try {

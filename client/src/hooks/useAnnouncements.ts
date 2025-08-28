@@ -1,5 +1,6 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import type { Announcement } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 /**
  * Fetch active announcements.  Optionally filtered by sponsorId.
@@ -12,7 +13,7 @@ export function useAnnouncements(
     queryKey: ["/api/announcements", sponsorId ?? "all"],
     queryFn: async () => {
       const url = sponsorId ? `/api/announcements?sponsorId=${sponsorId}` : "/api/announcements";
-      const res = await fetch(url);
+      const res = await apiRequest("GET", url);
       if (!res.ok) throw new Error("Failed to fetch announcements");
       return res.json();
     },

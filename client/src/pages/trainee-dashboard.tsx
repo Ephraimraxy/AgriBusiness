@@ -37,6 +37,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useNotifications, useUnreadNotificationCount } from "@/hooks/useNotifications";
 import { getTrainees, getMessages, getPublishedEvaluationQuestions, checkTraineeEvaluationSubmission, queryDocuments, TRAINEES_COLLECTION, SPONSORS_COLLECTION, getDocument } from "@/lib/firebaseService";
+import { apiRequest } from "@/lib/queryClient";
 import type { Trainee, Sponsor } from "@/lib/firebaseService";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -198,7 +199,7 @@ export default function TraineeDashboard() {
   const { data: availableExams = [] } = useQuery<any[]>({
     queryKey: ["/api/exams/available"],
     queryFn: async () => {
-      const res = await fetch("/api/exams/available");
+      const res = await apiRequest("GET", "/api/exams/available");
       if (!res.ok) throw new Error("Failed to fetch exams");
       return res.json();
     },
@@ -224,7 +225,7 @@ export default function TraineeDashboard() {
   const { data: filesCount = [] } = useQuery<any[]>({
     queryKey: ["/api/files", "count"],
     queryFn: async () => {
-      const res = await fetch("/api/files");
+      const res = await apiRequest("GET", "/api/files");
       if (!res.ok) throw new Error("Failed to fetch files");
       return res.json();
     },
@@ -235,7 +236,7 @@ export default function TraineeDashboard() {
   const { data: videosCount = [] } = useQuery<any[]>({
     queryKey: ["/api/videos", "count"],
     queryFn: async () => {
-      const res = await fetch("/api/videos");
+      const res = await apiRequest("GET", "/api/videos");
       if (!res.ok) throw new Error("Failed to fetch videos");
       return res.json();
     },

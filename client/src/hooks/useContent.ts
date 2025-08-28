@@ -1,5 +1,6 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import type { Content } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 /**
  * Fetch training content items (videos, quizzes, assignments).
@@ -13,7 +14,7 @@ export function useContent(
     queryKey: ["/api/content", sponsorId ?? "all"],
     queryFn: async () => {
       const url = sponsorId ? `/api/content?sponsorId=${sponsorId}` : "/api/content";
-      const res = await fetch(url);
+      const res = await apiRequest("GET", url);
       if (!res.ok) throw new Error("Failed to fetch content");
       return res.json();
     },

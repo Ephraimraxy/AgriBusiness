@@ -704,9 +704,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update trainee password in Firebase
       try {
-        // For now, we'll update a custom field in the trainee document
-        // In production, you might want to use Firebase Auth Admin SDK to change passwords
-        await db.collection('trainees').doc(storedData.traineeId).update({
+        // Update the trainee's password using the storage service
+        await storage.updateTrainee(storedData.traineeId, {
           passwordHash: newPassword, // In production, hash this password
           updatedAt: new Date()
         });

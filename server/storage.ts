@@ -24,7 +24,6 @@ import {
 } from "@shared/schema";
 import { db } from "./firebase";
 import { 
-  collection, 
   doc, 
   getDoc, 
   getDocs, 
@@ -207,7 +206,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
     
-            const docRef = await collection(db, 'sponsors').add(sponsorData);
+            const docRef = await db.collection('sponsors').add(sponsorData);
     return { id: docRef.id, ...sponsorData } as Sponsor;
   }
 
@@ -342,7 +341,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
 
-          const docRef = await collection(db, 'trainees').add(traineeData);
+          const docRef = await db.collection('trainees').add(traineeData);
     return { id: docRef.id, ...traineeData } as Trainee;
   }
 

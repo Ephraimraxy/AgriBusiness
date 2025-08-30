@@ -23,19 +23,7 @@ import {
   type InsertNotification,
 } from "@shared/schema";
 import { db } from "./firebase";
-import { 
-  doc, 
-  getDoc, 
-  getDocs, 
-  update, 
-  set,
-  query, 
-  where, 
-  orderBy, 
-  limit,
-  Timestamp,
-  writeBatch
-} from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth
@@ -98,100 +86,85 @@ export interface IStorage {
     completedCourses: number;
     activeContent: number;
     totalExams: number;
-    activeExams: number;
   }>;
-
+  
   // Exam operations
-  getExams(sponsorId?: string): Promise<Exam[]>;
-  getExam(id: string): Promise<Exam | undefined>;
   createExam(exam: InsertExam): Promise<Exam>;
+  getExams(): Promise<Exam[]>;
+  getExam(id: string): Promise<Exam | undefined>;
   updateExam(id: string, exam: Partial<InsertExam>): Promise<Exam>;
   deleteExam(id: string): Promise<void>;
   
-  // Exam question operations
-  getExamQuestions(examId: string): Promise<ExamQuestion[]>;
+  // Exam Question operations
   createExamQuestion(question: InsertExamQuestion): Promise<ExamQuestion>;
+  getExamQuestions(examId: string): Promise<ExamQuestion[]>;
+  getExamQuestion(id: string): Promise<ExamQuestion | undefined>;
   updateExamQuestion(id: string, question: Partial<InsertExamQuestion>): Promise<ExamQuestion>;
   deleteExamQuestion(id: string): Promise<void>;
-  deleteExamQuestions(examId: string): Promise<void>;
   
-  // Exam attempt operations
-  getExamAttempts(examId?: string, traineeId?: string): Promise<ExamAttempt[]>;
+  // Exam Attempt operations
+  createExamAttempt(attempt: ExamAttempt): Promise<ExamAttempt>;
+  getExamAttempts(traineeId: string): Promise<ExamAttempt[]>;
   getExamAttempt(id: string): Promise<ExamAttempt | undefined>;
-  startExamAttempt(examId: string, traineeId: string): Promise<ExamAttempt>;
-  submitExamAttempt(attemptId: string, answers: { questionId: string; answer: string }[]): Promise<ExamAttempt>;
-  gradeExamAttempt(attemptId: string): Promise<ExamAttempt>;
+  updateExamAttempt(id: string, attempt: Partial<ExamAttempt>): Promise<ExamAttempt>;
+  
+  // Exam Answer operations
+  createExamAnswer(answer: ExamAnswer): Promise<ExamAnswer>;
+  getExamAnswers(attemptId: string): Promise<ExamAnswer[]>;
+  updateExamAnswer(id: string, answer: Partial<ExamAnswer>): Promise<ExamAnswer>;
 }
 
-export class DatabaseStorage implements IStorage {
-  // Helper function to convert Firestore timestamps to Date objects
-  private convertTimestamps(data: any): any {
-    if (!data) return data;
+export class FirebaseStorage implements IStorage {
+  private convertTimestamps<T>(obj: any): T {
+    if (!obj) return obj;
     
-    // Handle arrays
-    if (Array.isArray(data)) {
-      return data.map(item => this.convertTimestamps(item));
-    }
-    
-    // Handle objects
-    if (typeof data === 'object' && data !== null) {
-      const converted = { ...data };
-      for (const key in converted) {
-        if (converted[key] instanceof Timestamp) {
-          converted[key] = converted[key].toDate();
-        } else if (typeof converted[key] === 'object' && converted[key] !== null) {
-          converted[key] = this.convertTimestamps(converted[key]);
-        }
+    const converted = { ...obj };
+    for (const [key, value] of Object.entries(converted)) {
+      if (value instanceof Timestamp) {
+        converted[key] = value.toDate();
+      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        converted[key] = this.convertTimestamps(value);
       }
-      return converted;
     }
-    
-    return data;
+    return converted;
   }
 
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const userDoc = await getDoc(doc(db, 'users', id));
-    if (userDoc.exists()) {
+    const userDoc = await db.collection('users').doc(id).get();
+    if (userDoc.exists) {
       return this.convertTimestamps({ id: userDoc.id, ...userDoc.data() }) as User;
     }
     return undefined;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const userRef = doc(db, 'users', userData.id);
-    const userDoc = await getDoc(userRef);
-    
-    const now = new Date();
+  async upsertUser(user: UpsertUser): Promise<User> {
+    const userRef = db.collection('users').doc(user.id);
     const userToSave = {
-      ...userData,
-      updatedAt: now,
-      createdAt: userDoc.exists() ? userDoc.data()?.createdAt : now,
+      ...user,
+      updatedAt: new Date(),
     };
 
-    if (userDoc.exists()) {
-      await updateDoc(userRef, userToSave);
+    const userDoc = await userRef.get();
+    if (userDoc.exists) {
+      await userRef.update(userToSave);
     } else {
-      await setDoc(userRef, userToSave);
+      await userRef.set(userToSave);
     }
     return userToSave as User;
   }
 
   // Sponsor operations
   async getSponsors(): Promise<Sponsor[]> {
-    const sponsorsQuery = query(
-      collection(db, 'sponsors'),
-      orderBy('createdAt', 'desc')
-    );
-    const snapshot = await getDocs(sponsorsQuery);
+    const snapshot = await db.collection('sponsors').orderBy('createdAt', 'desc').get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Sponsor
     );
   }
 
   async getSponsor(id: string): Promise<Sponsor | undefined> {
-    const sponsorDoc = await getDoc(doc(db, 'sponsors', id));
-    if (sponsorDoc.exists()) {
+    const sponsorDoc = await db.collection('sponsors').doc(id).get();
+    if (sponsorDoc.exists) {
       return this.convertTimestamps({ id: sponsorDoc.id, ...sponsorDoc.data() }) as Sponsor;
     }
     return undefined;
@@ -205,29 +178,27 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
     
-            const docRef = await db.collection('sponsors').add(sponsorData);
+    const docRef = await db.collection('sponsors').add(sponsorData);
     return { id: docRef.id, ...sponsorData } as Sponsor;
   }
 
   async updateSponsor(id: string, sponsor: Partial<InsertSponsor>): Promise<Sponsor> {
-    const sponsorRef = doc(db, 'sponsors', id);
+    const sponsorRef = db.collection('sponsors').doc(id);
     const updateData = {
       ...sponsor,
       updatedAt: new Date(),
     };
     
-    await updateDoc(sponsorRef, updateData);
-    const updatedDoc = await getDoc(sponsorRef);
+    await sponsorRef.update(updateData);
+    const updatedDoc = await sponsorRef.get();
     return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as Sponsor;
   }
 
   async getActiveSponsor(): Promise<Sponsor | undefined> {
-    const sponsorsQuery = query(
-      collection(db, 'sponsors'),
-      where('isActive', '==', true),
-      limit(1)
-    );
-    const snapshot = await getDocs(sponsorsQuery);
+    const snapshot = await db.collection('sponsors')
+      .where('isActive', '==', true)
+      .limit(1)
+      .get();
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
       return this.convertTimestamps({ id: doc.id, ...doc.data() }) as Sponsor;
@@ -237,60 +208,57 @@ export class DatabaseStorage implements IStorage {
 
   // Deactivate all sponsors (sets isActive=false on all documents)
   async deactivateAllSponsors(): Promise<void> {
-            const snapshot = await getDocs(db.collection('sponsors'));
+    const snapshot = await db.collection('sponsors').get();
     const now = new Date();
-    const updates = snapshot.docs.map((docSnap) =>
-      updateDoc(doc(db, 'sponsors', docSnap.id), {
+    const batch = db.batch();
+    
+    snapshot.docs.forEach((docSnap) => {
+      const docRef = db.collection('sponsors').doc(docSnap.id);
+      batch.update(docRef, {
         isActive: false,
         updatedAt: now,
-      })
-    );
-    await Promise.all(updates);
+      });
+    });
+    
+    await batch.commit();
   }
 
   // Delete sponsor by id
   async deleteSponsor(id: string): Promise<void> {
-            await db.collection('sponsors').doc(id).delete();
+    await db.collection('sponsors').doc(id).delete();
   }
 
   // Trainee operations
   async getTrainees(): Promise<Trainee[]> {
-    const traineesQuery = query(
-      collection(db, 'trainees'),
-      orderBy('createdAt', 'desc')
-    );
-    const snapshot = await getDocs(traineesQuery);
+    const snapshot = await db.collection('trainees').orderBy('createdAt', 'desc').get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Trainee
     );
   }
 
   async getTraineesBySponsor(sponsorId: string): Promise<Trainee[]> {
-    const traineesQuery = query(
-      collection(db, 'trainees'),
-      where('sponsorId', '==', sponsorId)
-    );
-    const snapshot = await getDocs(traineesQuery);
+    const snapshot = await db.collection('trainees')
+      .where('sponsorId', '==', sponsorId)
+      .orderBy('createdAt', 'desc')
+      .get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Trainee
     );
   }
 
   async getTrainee(id: string): Promise<Trainee | undefined> {
-    const traineeDoc = await getDoc(doc(db, 'trainees', id));
-    if (traineeDoc.exists()) {
+    const traineeDoc = await db.collection('trainees').doc(id).get();
+    if (traineeDoc.exists) {
       return this.convertTimestamps({ id: traineeDoc.id, ...traineeDoc.data() }) as Trainee;
     }
     return undefined;
   }
 
   async getTraineeByEmail(email: string): Promise<Trainee | undefined> {
-    const traineesQuery = query(
-      collection(db, 'trainees'),
-      where('email', '==', email),
-      limit(1)
-    );
-    const snapshot = await getDocs(traineesQuery);
+    const snapshot = await db.collection('trainees')
+      .where('email', '==', email)
+      .limit(1)
+      .get();
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
       return this.convertTimestamps({ id: doc.id, ...doc.data() }) as Trainee;
@@ -299,12 +267,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTraineeByUserId(userId: string): Promise<Trainee | undefined> {
-    const traineesQuery = query(
-      collection(db, 'trainees'),
-      where('userId', '==', userId),
-      limit(1)
-    );
-    const snapshot = await getDocs(traineesQuery);
+    const snapshot = await db.collection('trainees')
+      .where('userId', '==', userId)
+      .limit(1)
+      .get();
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
       return this.convertTimestamps({ id: doc.id, ...doc.data() }) as Trainee;
@@ -313,190 +279,128 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrainee(trainee: InsertTrainee): Promise<Trainee> {
-    // Generate unique trainee ID and tag number
-            const traineesSnapshot = await getDocs(db.collection('trainees'));
-    const nextNumber = traineesSnapshot.size + 1;
-    const paddedNumber = nextNumber.toString().padStart(4, '0');
-    
-    // Auto-assign venues and room
-    const venues = {
-      lecture: ['Gold Hall', 'Silver Hall', 'White Hall'],
-      meal: ['Restaurant 1', 'Restaurant 2', 'Restaurant 3'],
-    };
-    
-    const lectureVenue = venues.lecture[Math.floor(Math.random() * venues.lecture.length)];
-    const mealVenue = venues.meal[Math.floor(Math.random() * venues.meal.length)];
-    const roomNumber = (100 + Math.floor(Math.random() * 300)).toString();
-    
     const now = new Date();
     const traineeData = {
       ...trainee,
-      traineeId: `TRAINEE-${paddedNumber}`,
-      tagNumber: `FAMS-${paddedNumber}`,
-      roomNumber,
-      lectureVenue,
-      mealVenue,
       createdAt: now,
       updatedAt: now,
     };
-
-          const docRef = await db.collection('trainees').add(traineeData);
+    
+    const docRef = await db.collection('trainees').add(traineeData);
     return { id: docRef.id, ...traineeData } as Trainee;
   }
 
   async updateTrainee(id: string, trainee: Partial<InsertTrainee>): Promise<Trainee> {
-    const traineeRef = doc(db, 'trainees', id);
+    const traineeRef = db.collection('trainees').doc(id);
     const updateData = {
       ...trainee,
       updatedAt: new Date(),
     };
     
-    await updateDoc(traineeRef, updateData);
-    const updatedDoc = await getDoc(traineeRef);
+    await traineeRef.update(updateData);
+    const updatedDoc = await traineeRef.get();
     return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as Trainee;
   }
 
   async verifyTraineeEmail(email: string, code: string): Promise<boolean> {
-    const traineesQuery = query(
-      collection(db, 'trainees'),
-      where('email', '==', email),
-      where('verificationCode', '==', code),
-      limit(1)
-    );
-    const snapshot = await getDocs(traineesQuery);
+    const snapshot = await db.collection('trainees')
+      .where('email', '==', email)
+      .where('verificationCode', '==', code)
+      .limit(1)
+      .get();
     
     if (!snapshot.empty) {
-      const traineeDoc = snapshot.docs[0];
-      const traineeData = traineeDoc.data();
-      
-      if (traineeData.verificationCodeExpiry && traineeData.verificationCodeExpiry.toDate() > new Date()) {
-        await updateDoc(traineeDoc.ref, {
-          emailVerified: true,
-          verificationCode: null,
-          verificationCodeExpiry: null,
-          updatedAt: new Date(),
-        });
-        return true;
-      }
+      const doc = snapshot.docs[0];
+      await db.collection('trainees').doc(doc.id).update({
+        isEmailVerified: true,
+        verificationCode: null,
+        updatedAt: new Date(),
+      });
+      return true;
     }
     return false;
   }
 
   // Content operations
   async getContent(): Promise<Content[]> {
-    const contentQuery = query(
-      collection(db, 'content'),
-      orderBy('createdAt', 'desc')
-    );
-    const snapshot = await getDocs(contentQuery);
+    const snapshot = await db.collection('content').orderBy('createdAt', 'desc').get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Content
     );
   }
 
   async getContentBySponsor(sponsorId: string): Promise<Content[]> {
-    const contentQuery = query(
-      collection(db, 'content'),
-      where('sponsorId', '==', sponsorId)
-    );
-    const snapshot = await getDocs(contentQuery);
+    const snapshot = await db.collection('content')
+      .where('sponsorId', '==', sponsorId)
+      .orderBy('createdAt', 'desc')
+      .get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Content
     );
   }
 
-  async createContent(contentData: InsertContent): Promise<Content> {
+  async createContent(content: InsertContent): Promise<Content> {
     const now = new Date();
-    const content = {
-      ...contentData,
+    const contentData = {
+      ...content,
       createdAt: now,
       updatedAt: now,
     };
     
-    const docRef = await db.collection('content').add(content);
-    return { id: docRef.id, ...content } as Content;
+    const docRef = await db.collection('content').add(contentData);
+    return { id: docRef.id, ...contentData } as Content;
   }
 
-  async updateContent(id: string, contentData: Partial<InsertContent>): Promise<Content> {
-    const contentRef = doc(db, 'content', id);
+  async updateContent(id: string, content: Partial<InsertContent>): Promise<Content> {
+    const contentRef = db.collection('content').doc(id);
     const updateData = {
-      ...contentData,
+      ...content,
       updatedAt: new Date(),
     };
     
-    await updateDoc(contentRef, updateData);
-    const updatedDoc = await getDoc(contentRef);
+    await contentRef.update(updateData);
+    const updatedDoc = await contentRef.get();
     return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as Content;
   }
 
   // Progress operations
   async getTraineeProgress(traineeId: string): Promise<TraineeProgress[]> {
-    const progressQuery = query(
-      collection(db, 'traineeProgress'),
-      where('traineeId', '==', traineeId)
-    );
-    const snapshot = await getDocs(progressQuery);
+    const snapshot = await db.collection('traineeProgress')
+      .where('traineeId', '==', traineeId)
+      .orderBy('updatedAt', 'desc')
+      .get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as TraineeProgress
     );
   }
 
-  async updateProgress(
-    traineeId: string,
-    contentId: string,
-    progress: Partial<TraineeProgress>
-  ): Promise<TraineeProgress> {
-    const progressQuery = query(
-      collection(db, 'traineeProgress'),
-      where('traineeId', '==', traineeId),
-      where('contentId', '==', contentId),
-      limit(1)
-    );
-    const snapshot = await getDocs(progressQuery);
+  async updateProgress(traineeId: string, contentId: string, progress: Partial<TraineeProgress>): Promise<TraineeProgress> {
+    const progressRef = db.collection('traineeProgress').doc(`${traineeId}_${contentId}`);
+    const updateData = {
+      ...progress,
+      traineeId,
+      contentId,
+      updatedAt: new Date(),
+    };
     
-    if (!snapshot.empty) {
-      const existingDoc = snapshot.docs[0];
-      const updateData = {
-        ...progress,
-        updatedAt: new Date(),
-      };
-      
-      await updateDoc(existingDoc.ref, updateData);
-      const updatedDoc = await getDoc(existingDoc.ref);
-      return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as TraineeProgress;
-    } else {
-      const now = new Date();
-      const progressData = {
-        traineeId,
-        contentId,
-        ...progress,
-        createdAt: now,
-        updatedAt: now,
-      };
-      
-      const docRef = await db.collection('traineeProgress').add(progressData);
-      return { id: docRef.id, ...progressData } as TraineeProgress;
-    }
+    await progressRef.set(updateData, { merge: true });
+    const updatedDoc = await progressRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as TraineeProgress;
   }
 
   // Announcement operations
   async getAnnouncements(): Promise<Announcement[]> {
-    const announcementsQuery = query(
-      collection(db, 'announcements'),
-      orderBy('createdAt', 'desc')
-    );
-    const snapshot = await getDocs(announcementsQuery);
+    const snapshot = await db.collection('announcements').orderBy('createdAt', 'desc').get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Announcement
     );
   }
 
   async getAnnouncementsBySponsor(sponsorId: string): Promise<Announcement[]> {
-    const announcementsQuery = query(
-      collection(db, 'announcements'),
-      where('sponsorId', '==', sponsorId)
-    );
-    const snapshot = await getDocs(announcementsQuery);
+    const snapshot = await db.collection('announcements')
+      .where('sponsorId', '==', sponsorId)
+      .orderBy('createdAt', 'desc')
+      .get();
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as Announcement
     );
@@ -504,14 +408,11 @@ export class DatabaseStorage implements IStorage {
 
   async createAnnouncement(announcement: InsertAnnouncement, adminUser?: any): Promise<Announcement> {
     const now = new Date();
-    const senderName = adminUser?.firstName ? 
-      `${adminUser.firstName} ${adminUser.lastName || ''}`.trim() : 'Admin';
-    
     const announcementData = {
       ...announcement,
-      from: senderName,
       createdAt: now,
       updatedAt: now,
+      createdBy: adminUser?.id || 'system',
     };
     
     const docRef = await db.collection('announcements').add(announcementData);
@@ -519,131 +420,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAnnouncement(id: string, announcement: Partial<InsertAnnouncement>): Promise<Announcement> {
-    const now = new Date();
+    const announcementRef = db.collection('announcements').doc(id);
     const updateData = {
       ...announcement,
-      updatedAt: now,
+      updatedAt: new Date(),
     };
     
-    const docRef = doc(db, 'announcements', id);
-    await updateDoc(docRef, updateData);
-    
-    const updatedDoc = await getDoc(docRef);
-    if (!updatedDoc.exists()) {
-      throw new Error('Announcement not found');
-    }
-    
+    await announcementRef.update(updateData);
+    const updatedDoc = await announcementRef.get();
     return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as Announcement;
   }
 
   async deleteAnnouncement(id: string): Promise<void> {
-    // Delete all replies first
-    const repliesQuery = query(
-      collection(db, 'announcementReplies'),
-      where('announcementId', '==', id)
-    );
-    const repliesSnapshot = await getDocs(repliesQuery);
-    
-    // Delete all replies in a batch
-    const batch = writeBatch(db);
-    repliesSnapshot.docs.forEach((replyDoc) => {
-      batch.delete(replyDoc.ref);
-    });
-    
-    // Delete the announcement
-    const announcementRef = doc(db, 'announcements', id);
-    batch.delete(announcementRef);
-    
-    // Commit the batch
-    await batch.commit();
+    await db.collection('announcements').doc(id).delete();
   }
 
   // Announcement Reply operations
   async getAnnouncementReplies(announcementId: string): Promise<AnnouncementReply[]> {
-    try {
-      console.log("Storage: Getting replies for announcement:", announcementId);
-      
-      const repliesQuery = query(
-        collection(db, 'announcementReplies'),
-        where('announcementId', '==', announcementId),
-        orderBy('createdAt', 'asc')
-      );
-      
-      console.log("Storage: Query created, executing...");
-      const snapshot = await getDocs(repliesQuery);
-      console.log("Storage: Query executed, docs count:", snapshot.docs.length);
-      
-      const replies = snapshot.docs.map(doc => 
-        this.convertTimestamps({ id: doc.id, ...doc.data() }) as AnnouncementReply
-      );
-      
-      console.log("Storage: Replies processed:", replies.length);
-      return replies;
-    } catch (error: any) {
-      console.error("Storage: Error getting replies:", error);
-      
-      // Handle Firebase index error gracefully - fetch all replies and filter in memory
-      if (error.code === 'failed-precondition') {
-        console.log("Storage: Firebase index not ready, fetching all replies and filtering in memory");
-        try {
-          const allRepliesSnapshot = await getDocs(collection(db, 'announcementReplies'));
-          const allReplies = allRepliesSnapshot.docs.map(doc => 
-            this.convertTimestamps({ id: doc.id, ...doc.data() }) as AnnouncementReply
-          );
-          
-          // Filter replies for this specific announcement
-          const filteredReplies = allReplies.filter(reply => reply.announcementId === announcementId);
-          
-          // Sort by createdAt
-          filteredReplies.sort((a, b) => {
-            const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-            const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-            return dateA.getTime() - dateB.getTime();
-          });
-          
-          console.log("Storage: Filtered replies count:", filteredReplies.length);
-          return filteredReplies;
-        } catch (fallbackError) {
-          console.error("Storage: Fallback query also failed:", fallbackError);
-          return [];
-        }
-      }
-      
-      throw error;
-    }
+    const snapshot = await db.collection('announcementReplies')
+      .where('announcementId', '==', announcementId)
+      .orderBy('createdAt', 'asc')
+      .get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as AnnouncementReply
+    );
   }
 
   async createAnnouncementReply(reply: InsertAnnouncementReply, user: any): Promise<AnnouncementReply> {
     const now = new Date();
-    const senderName = user?.firstName ? 
-      `${user.firstName} ${user.lastName || ''}`.trim() : 
-      (user?.role === 'admin' ? 'Admin' : 'Trainee');
-    
-    // Filter out undefined fields to avoid Firestore issues
-    const cleanReply = Object.fromEntries(
-      Object.entries(reply).filter(([_, value]) => value !== undefined)
-    );
-    
     const replyData = {
-      ...cleanReply,
-      from: senderName,
-      fromId: user.id,
-      fromRole: user.role,
+      ...reply,
       createdAt: now,
+      updatedAt: now,
+      createdBy: user?.id || 'anonymous',
     };
-    
-    console.log('Creating announcement reply with data:', replyData);
     
     const docRef = await db.collection('announcementReplies').add(replyData);
     return { id: docRef.id, ...replyData } as AnnouncementReply;
   }
 
-  // Notification operations
+  // Notifications
   async createNotification(notification: InsertNotification): Promise<Notification> {
     const now = new Date();
     const notificationData = {
       ...notification,
       createdAt: now,
+      updatedAt: now,
     };
     
     const docRef = await db.collection('notifications').add(notificationData);
@@ -651,122 +473,69 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getNotifications(userId: string): Promise<Notification[]> {
-    try {
-      const notificationsQuery = query(
-        collection(db, 'notifications'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      
-      const snapshot = await getDocs(notificationsQuery);
-      return snapshot.docs.map(doc => this.convertTimestamps({ id: doc.id, ...doc.data() } as Notification));
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      
-      // If there's a Firebase index error, try fetching all notifications and filtering
-      if (error instanceof Error && error.message.includes('failed-precondition')) {
-        console.log('Firebase index not ready, fetching all notifications and filtering in memory');
-        try {
-          const allNotificationsQuery = query(
-            collection(db, 'notifications'),
-            orderBy('createdAt', 'desc')
-          );
-          
-          const allSnapshot = await getDocs(allNotificationsQuery);
-          const allNotifications = allSnapshot.docs.map(doc => 
-            this.convertTimestamps({ id: doc.id, ...doc.data() } as Notification)
-          );
-          
-          // Filter by userId in memory
-          const filteredNotifications = allNotifications.filter(n => n.userId === userId);
-          console.log(`Filtered notifications count: ${filteredNotifications.length}`);
-          return filteredNotifications;
-        } catch (fallbackError) {
-          console.error('Fallback notification fetch also failed:', fallbackError);
-          // Return empty array if both attempts fail
-          return [];
-        }
-      }
-      
-      // For any other error, return empty array
-      console.log('Returning empty notifications array due to error');
-      return [];
-    }
+    const snapshot = await db.collection('notifications')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as Notification
+    );
   }
 
   async markNotificationAsRead(notificationId: string): Promise<void> {
-    await updateDoc(doc(db, 'notifications', notificationId), {
+    await db.collection('notifications').doc(notificationId).update({
       isRead: true,
+      updatedAt: new Date(),
     });
   }
 
   // System settings
   async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
-    const settingDoc = await getDoc(doc(db, 'systemSettings', key));
-    if (settingDoc.exists()) {
+    const settingDoc = await db.collection('systemSettings').doc(key).get();
+    if (settingDoc.exists) {
       return this.convertTimestamps({ id: settingDoc.id, ...settingDoc.data() }) as SystemSetting;
     }
     return undefined;
   }
 
   async updateSystemSetting(key: string, value: string): Promise<SystemSetting> {
-    const settingRef = doc(db, 'systemSettings', key);
+    const settingRef = db.collection('systemSettings').doc(key);
     const settingData = {
       key,
       value,
       updatedAt: new Date(),
     };
     
-    await setDoc(settingRef, settingData);
-    return { id: key, ...settingData } as SystemSetting;
+    await settingRef.set(settingData, { merge: true });
+    const updatedDoc = await settingRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as SystemSetting;
   }
 
-  // Statistics - Single implementation that includes exam data
+  // Statistics
   async getStatistics(): Promise<{
     totalTrainees: number;
     activeSponsors: number;
     completedCourses: number;
     activeContent: number;
     totalExams: number;
-    activeExams: number;
   }> {
-    const [trainees, sponsors, content, exams] = await Promise.all([
-      this.getTrainees(),
-      this.getSponsors(),
-      this.getContent(),
-      this.getExams(),
+    const [traineesSnapshot, sponsorsSnapshot, contentSnapshot, examsSnapshot] = await Promise.all([
+      db.collection('trainees').get(),
+      db.collection('sponsors').where('isActive', '==', true).get(),
+      db.collection('content').get(),
+      db.collection('exams').get(),
     ]);
 
-    const completedCourses = 0; // This would need to be calculated based on your business logic
-    
     return {
-      totalTrainees: trainees.length,
-      activeSponsors: sponsors.filter(s => s.isActive).length,
-      completedCourses,
-      activeContent: content.filter(c => c.isActive).length,
-      totalExams: exams.length,
-      activeExams: exams.filter(e => e.isActive).length,
+      totalTrainees: traineesSnapshot.size,
+      activeSponsors: sponsorsSnapshot.size,
+      completedCourses: 0, // TODO: Implement completion tracking
+      activeContent: contentSnapshot.size,
+      totalExams: examsSnapshot.size,
     };
   }
 
-  // Exam operations implementation
-  async getExams(sponsorId?: string): Promise<Exam[]> {
-    let q;
-    if (sponsorId) {
-      q = query(collection(db, 'exams'), where('sponsorId', '==', sponsorId));
-    } else {
-      q = collection(db, 'exams');
-    }
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => this.convertTimestamps({ id: doc.id, ...doc.data() } as Exam));
-  }
-
-  async getExam(id: string): Promise<Exam | undefined> {
-    const docSnap = await getDoc(doc(db, 'exams', id));
-    if (!docSnap.exists()) return undefined;
-    return this.convertTimestamps({ id: docSnap.id, ...docSnap.data() } as Exam);
-  }
-
+  // Exam operations
   async createExam(exam: InsertExam): Promise<Exam> {
     const now = new Date();
     const examData = {
@@ -774,40 +543,46 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
+    
     const docRef = await db.collection('exams').add(examData);
-    return { id: docRef.id, ...examData };
+    return { id: docRef.id, ...examData } as Exam;
+  }
+
+  async getExams(): Promise<Exam[]> {
+    const snapshot = await db.collection('exams').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as Exam
+    );
+  }
+
+  async getExam(id: string): Promise<Exam | undefined> {
+    const examDoc = await db.collection('exams').doc(id).get();
+    if (examDoc.exists) {
+      return this.convertTimestamps({ id: examDoc.id, ...examDoc.data() }) as Exam;
+    }
+    return undefined;
   }
 
   async updateExam(id: string, exam: Partial<InsertExam>): Promise<Exam> {
-    const now = new Date();
-    const examData = {
+    const examRef = db.collection('exams').doc(id);
+    const updateData = {
       ...exam,
-      updatedAt: now,
+      updatedAt: new Date(),
     };
-    await updateDoc(doc(db, 'exams', id), examData);
-    const updated = await this.getExam(id);
-    if (!updated) throw new Error('Exam not found after update');
-    return updated;
+    
+    await examRef.update(updateData);
+    const updatedDoc = await examRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as Exam;
   }
 
   async deleteExam(id: string): Promise<void> {
     // First delete all questions for this exam
     await this.deleteExamQuestions(id);
     // Then delete the exam itself
-            await db.collection('exams').doc(id).delete();
+    await db.collection('exams').doc(id).delete();
   }
 
-  // Exam question operations
-  async getExamQuestions(examId: string): Promise<ExamQuestion[]> {
-    const q = query(
-      collection(db, 'examQuestions'),
-      where('examId', '==', examId),
-      orderBy('orderIndex')
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => this.convertTimestamps({ id: doc.id, ...doc.data() } as ExamQuestion));
-  }
-
+  // Exam Question operations
   async createExamQuestion(question: InsertExamQuestion): Promise<ExamQuestion> {
     const now = new Date();
     const questionData = {
@@ -815,173 +590,122 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
+    
     const docRef = await db.collection('examQuestions').add(questionData);
-    return { id: docRef.id, ...questionData };
+    return { id: docRef.id, ...questionData } as ExamQuestion;
   }
 
-  async updateExamQuestion(id: string, question: Partial<InsertExamQuestion>): Promise<ExamQuestion> {
-    const now = new Date();
-    const questionData = {
-      ...question,
-      updatedAt: now,
-    };
-    await updateDoc(doc(db, 'examQuestions', id), questionData);
-    const updated = await this.getExamQuestion(id);
-    if (!updated) throw new Error('Question not found after update');
-    return updated;
+  async getExamQuestions(examId: string): Promise<ExamQuestion[]> {
+    const snapshot = await db.collection('examQuestions')
+      .where('examId', '==', examId)
+      .orderBy('order', 'asc')
+      .get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as ExamQuestion
+    );
   }
 
   async getExamQuestion(id: string): Promise<ExamQuestion | undefined> {
-    const docSnap = await getDoc(doc(db, 'examQuestions', id));
-    if (!docSnap.exists()) return undefined;
-    return this.convertTimestamps({ id: docSnap.id, ...docSnap.data() } as ExamQuestion);
+    const questionDoc = await db.collection('examQuestions').doc(id).get();
+    if (questionDoc.exists) {
+      return this.convertTimestamps({ id: questionDoc.id, ...questionDoc.data() }) as ExamQuestion;
+    }
+    return undefined;
+  }
+
+  async updateExamQuestion(id: string, question: Partial<InsertExamQuestion>): Promise<ExamQuestion> {
+    const questionRef = db.collection('examQuestions').doc(id);
+    const updateData = {
+      ...question,
+      updatedAt: new Date(),
+    };
+    
+    await questionRef.update(updateData);
+    const updatedDoc = await questionRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as ExamQuestion;
   }
 
   async deleteExamQuestion(id: string): Promise<void> {
-            await db.collection('examQuestions').doc(id).delete();
+    await db.collection('examQuestions').doc(id).delete();
   }
 
-  async deleteExamQuestions(examId: string): Promise<void> {
-    const questions = await this.getExamQuestions(examId);
-    const batch = writeBatch(db);
-    questions.forEach(question => {
-      batch.delete(doc(db, 'examQuestions', question.id));
-    });
-    await batch.commit();
-  }
-
-  // Exam attempt operations
-  async getExamAttempts(examId?: string, traineeId?: string): Promise<ExamAttempt[]> {
-    let q;
-    if (examId && traineeId) {
-      q = query(
-        collection(db, 'examAttempts'),
-        where('examId', '==', examId),
-        where('traineeId', '==', traineeId)
-      );
-    } else if (examId) {
-      q = query(collection(db, 'examAttempts'), where('examId', '==', examId));
-    } else if (traineeId) {
-      q = query(collection(db, 'examAttempts'), where('traineeId', '==', traineeId));
-    } else {
-      q = collection(db, 'examAttempts');
-    }
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => this.convertTimestamps({ id: doc.id, ...doc.data() } as ExamAttempt));
-  }
-
-  async getExamAttempt(id: string): Promise<ExamAttempt | undefined> {
-    const docSnap = await getDoc(doc(db, 'examAttempts', id));
-    if (!docSnap.exists()) return undefined;
-    return this.convertTimestamps({ id: docSnap.id, ...docSnap.data() } as ExamAttempt);
-  }
-
-  async startExamAttempt(examId: string, traineeId: string): Promise<ExamAttempt> {
+  // Exam Attempt operations
+  async createExamAttempt(attempt: ExamAttempt): Promise<ExamAttempt> {
     const now = new Date();
-    const exam = await this.getExam(examId);
-    if (!exam) throw new Error('Exam not found');
-
-    // Check if there's an existing in-progress attempt
-    const existingAttempts = await this.getExamAttempts(examId, traineeId);
-    const inProgressAttempt = existingAttempts.find(a => a.status === 'in_progress');
-    
-    if (inProgressAttempt) {
-      // If there's an in-progress attempt, return it
-      return inProgressAttempt;
-    }
-
-    // Create a new attempt
     const attemptData = {
-      examId,
-      traineeId,
-      startTime: now,
-      status: 'in_progress' as const,
+      ...attempt,
       createdAt: now,
       updatedAt: now,
     };
     
     const docRef = await db.collection('examAttempts').add(attemptData);
-    return { id: docRef.id, ...attemptData };
+    return { id: docRef.id, ...attemptData } as ExamAttempt;
   }
 
-  async submitExamAttempt(attemptId: string, answers: { questionId: string; answer: string }[]): Promise<ExamAttempt> {
-    const now = new Date();
-    const attempt = await this.getExamAttempt(attemptId);
-    if (!attempt) throw new Error('Attempt not found');
-    if (attempt.status !== 'in_progress') throw new Error('Attempt is not in progress');
-
-    // Update the attempt status
-    await updateDoc(doc(db, 'examAttempts', attemptId), {
-      status: 'submitted',
-      endTime: now,
-      updatedAt: now,
-    });
-
-    // Save the answers
-    const answerPromises = answers.map(async ({ questionId, answer }) => {
-      const question = await this.getExamQuestion(questionId);
-      if (!question) return;
-      
-      const isCorrect = question.correctAnswer === answer;
-      const pointsAwarded = isCorrect ? question.points : 0;
-      
-      await db.collection('examAnswers').add({
-        attemptId,
-        questionId,
-        answer,
-        isCorrect,
-        pointsAwarded,
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
-
-    await Promise.all(answerPromises);
-
-    // Return the updated attempt
-    const updated = await this.getExamAttempt(attemptId);
-    if (!updated) throw new Error('Failed to update attempt');
-    return updated;
-  }
-
-  async gradeExamAttempt(attemptId: string): Promise<ExamAttempt> {
-    const now = new Date();
-    const attempt = await this.getExamAttempt(attemptId);
-    if (!attempt) throw new Error('Attempt not found');
-    if (attempt.status === 'in_progress') {
-      throw new Error('Cannot grade an in-progress attempt');
-    }
-    if (attempt.status === 'graded') {
-      return attempt; // Already graded
-    }
-
-    // Get all answers for this attempt
-    const answersSnapshot = await getDocs(
-      query(collection(db, 'examAnswers'), where('attemptId', '==', attemptId))
+  async getExamAttempts(traineeId: string): Promise<ExamAttempt[]> {
+    const snapshot = await db.collection('examAttempts')
+      .where('traineeId', '==', traineeId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as ExamAttempt
     );
-    
-    const answers = answersSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    // Calculate total score
-    const totalScore = answers.reduce((sum: number, answer: any) => sum + (answer.pointsAwarded || 0), 0);
-
-    // Update the attempt with the score and status
-    await updateDoc(doc(db, 'examAttempts', attemptId), {
-      status: 'graded',
-      score: totalScore,
-      updatedAt: now,
-    });
-
-    // Return the updated attempt
-    const updated = await this.getExamAttempt(attemptId);
-    if (!updated) throw new Error('Failed to update attempt');
-    return updated;
   }
 
-  // This method is now implemented above with the correct return type
+  async getExamAttempt(id: string): Promise<ExamAttempt | undefined> {
+    const attemptDoc = await db.collection('examAttempts').doc(id).get();
+    if (attemptDoc.exists) {
+      return this.convertTimestamps({ id: attemptDoc.id, ...attemptDoc.data() }) as ExamAttempt;
+    }
+    return undefined;
+  }
+
+  async updateExamAttempt(id: string, attempt: Partial<ExamAttempt>): Promise<ExamAttempt> {
+    const attemptRef = db.collection('examAttempts').doc(id);
+    const updateData = {
+      ...attempt,
+      updatedAt: new Date(),
+    };
+    
+    await attemptRef.update(updateData);
+    const updatedDoc = await attemptRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as ExamAttempt;
+  }
+
+  // Exam Answer operations
+  async createExamAnswer(answer: ExamAnswer): Promise<ExamAnswer> {
+    const now = new Date();
+    const answerData = {
+      ...answer,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    const docRef = await db.collection('examAnswers').add(answerData);
+    return { id: docRef.id, ...answerData } as ExamAnswer;
+  }
+
+  async getExamAnswers(attemptId: string): Promise<ExamAnswer[]> {
+    const snapshot = await db.collection('examAnswers')
+      .where('attemptId', '==', attemptId)
+      .orderBy('createdAt', 'asc')
+      .get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as ExamAnswer
+    );
+  }
+
+  async updateExamAnswer(id: string, answer: Partial<ExamAnswer>): Promise<ExamAnswer> {
+    const answerRef = db.collection('examAnswers').doc(id);
+    const updateData = {
+      ...answer,
+      updatedAt: new Date(),
+    };
+    
+    await answerRef.update(updateData);
+    const updatedDoc = await answerRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as ExamAnswer;
+  }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new FirebaseStorage();

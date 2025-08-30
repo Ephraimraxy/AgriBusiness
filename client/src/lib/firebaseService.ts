@@ -676,11 +676,31 @@ export const createSponsor = async (sponsorData: Omit<Sponsor, 'id' | 'createdAt
 };
 
 export const getSponsors = async (): Promise<Sponsor[]> => {
-  return await getAllDocuments<Sponsor>(SPONSORS_COLLECTION);
+  try {
+    // Use API instead of direct Firebase access
+    const response = await fetch('/api/sponsors');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch sponsors: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching sponsors via API:', error);
+    return [];
+  }
 };
 
 export const getActiveSponsors = async (): Promise<Sponsor[]> => {
-  return await queryDocuments<Sponsor>(SPONSORS_COLLECTION, "isActive", "==", true);
+  try {
+    // Use API instead of direct Firebase access
+    const response = await fetch('/api/sponsors/active');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch active sponsors: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching active sponsors via API:', error);
+    return [];
+  }
 };
 
 // Batch functions

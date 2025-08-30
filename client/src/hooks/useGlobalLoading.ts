@@ -27,15 +27,17 @@ export const useGlobalLoading = () => {
         }
         
         if (isLoading) {
-          console.log('🔍 Loading detected - Pending queries:', pendingQueries.map(q => q.queryKey));
+          // Debug logging disabled for cleaner console
+          // console.log('🔍 Loading detected - Pending queries:', pendingQueries.map(q => q.queryKey));
           
           // Set a timeout to force clear stuck queries after 5 seconds
           stuckQueryTimeoutRef.current = setTimeout(() => {
-            console.log('⚠️ Force clearing stuck queries after 5 seconds');
+            // console.log('⚠️ Force clearing stuck queries after 5 seconds');
             setDataLoading(false);
           }, 5000);
         } else {
-          console.log('✅ No pending queries - Clearing loading state');
+          // Debug logging disabled for cleaner console
+          // console.log('✅ No pending queries - Clearing loading state');
           setDataLoading(false);
         }
       }

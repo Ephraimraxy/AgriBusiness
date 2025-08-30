@@ -1,18 +1,17 @@
 import { db } from "./firebase";
-import { setDoc, doc } from "firebase/firestore";
 
 // Initialize Firebase with sample data
 export async function initializeFirebase() {
   try {
     // Create system settings
-    await setDoc(doc(db, 'systemSettings', 'registration_enabled'), {
+    await db.collection('systemSettings').doc('registration_enabled').set({
       key: 'registration_enabled',
       value: 'true',
       updatedAt: new Date(),
     });
 
     // Create sample sponsor
-    await setDoc(doc(db, 'sponsors', 'sponsor1'), {
+    await db.collection('sponsors').doc('sponsor1').set({
       name: 'CSS FARMS Nigeria',
       description: 'Leading agricultural training organization',
       logoUrl: '',
@@ -22,7 +21,7 @@ export async function initializeFirebase() {
     });
 
     // Create admin user
-    await setDoc(doc(db, 'users', 'admin-default'), {
+    await db.collection('users').doc('admin-default').set({
       id: 'admin-default',
       email: 'hoseaephraim50@gmail.com',
       firstName: 'Admin',

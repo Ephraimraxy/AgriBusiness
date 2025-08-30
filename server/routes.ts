@@ -1059,10 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 /* Duplicate block disabled
 // Import exam-related schemas and dependencies
-import { setDoc, doc, getFirestore } from "firebase/firestore";
 import { insertExamSchema, insertExamQuestionSchema } from "@shared/schema";
-
-const db = getFirestore();
       // Check stored verification codes
 
       global.verificationCodes = global.verificationCodes || {};

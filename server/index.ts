@@ -2,10 +2,16 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import path from "path";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { registerRoutes } from "./routes";
 // IMPORTANT: avoid importing from './vite' at the top level to prevent bundling 'vite' in production
 import { initializeFirebase } from "./initialize-firebase";
 import { testEmailConnection } from "./emailService";
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

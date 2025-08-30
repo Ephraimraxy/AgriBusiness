@@ -1747,11 +1747,7 @@ import { insertExamSchema, insertExamQuestionSchema } from "@shared/schema";
 /* Duplicate block disabled
 // Import exam-related schemas and dependencies
 
-import { setDoc, doc, getFirestore } from "firebase/firestore";
+
 
 import { insertExamSchema, insertExamQuestionSchema } from "@shared/schema";
-
-
-
-const db = getFirestore();
 */

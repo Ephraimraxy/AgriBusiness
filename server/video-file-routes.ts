@@ -9,7 +9,6 @@ import {
   orderBy,
   doc,
   getDoc,
-  deleteDoc,
   update,
 } from "firebase-admin/firestore";
 import { exec } from "child_process";
@@ -132,7 +131,7 @@ export function registerVideoFileRoutes(app: Express) {
       if (!snap.exists()) return res.status(404).json({ message: "Video not found" });
       const data = snap.data() as any;
       if (fs.existsSync(data.path)) fs.unlinkSync(data.path);
-      await deleteDoc(ref);
+      await ref.delete();
       res.json({ message: "Video deleted" });
     } catch (err) {
       console.error("Delete error", err);
@@ -256,7 +255,7 @@ export function registerVideoFileRoutes(app: Express) {
       if (!snap.exists()) return res.status(404).json({ message: "File not found" });
       const data = snap.data() as any;
       if (fs.existsSync(data.path)) fs.unlinkSync(data.path);
-      await deleteDoc(ref);
+      await ref.delete();
       res.json({ message: "File deleted" });
     } catch (err) {
       console.error("Delete error", err);

@@ -33,7 +33,6 @@ import {
   where, 
   orderBy, 
   limit,
-  deleteDoc,
   Timestamp,
   writeBatch
 } from "firebase-admin/firestore";
@@ -251,7 +250,7 @@ export class DatabaseStorage implements IStorage {
 
   // Delete sponsor by id
   async deleteSponsor(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'sponsors', id));
+            await db.collection('sponsors').doc(id).delete();
   }
 
   // Trainee operations
@@ -795,7 +794,7 @@ export class DatabaseStorage implements IStorage {
     // First delete all questions for this exam
     await this.deleteExamQuestions(id);
     // Then delete the exam itself
-    await deleteDoc(doc(db, 'exams', id));
+            await db.collection('exams').doc(id).delete();
   }
 
   // Exam question operations
@@ -839,7 +838,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteExamQuestion(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'examQuestions', id));
+            await db.collection('examQuestions').doc(id).delete();
   }
 
   async deleteExamQuestions(examId: string): Promise<void> {

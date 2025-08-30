@@ -120,9 +120,12 @@ export default function AdminContent() {
               <Plus className="mr-2 h-4 w-4" /> Add Content
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg animate-in zoom-in-95 fade-in-50">
+          <DialogContent className="sm:max-w-lg animate-in zoom-in-95 fade-in-50" aria-describedby="add-content-description">
             <DialogHeader>
               <DialogTitle>Add New Content</DialogTitle>
+              <div id="add-content-description" className="sr-only">
+                Form to add new content with title, description, type, URL, and sponsor selection
+              </div>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">

@@ -10,6 +10,18 @@ export async function initializeFirebase() {
       updatedAt: new Date(),
     });
 
+    await db.collection('systemSettings').doc('staff_registration_enabled').set({
+      key: 'staff_registration_enabled',
+      value: 'true',
+      updatedAt: new Date(),
+    });
+
+    await db.collection('systemSettings').doc('rp_registration_enabled').set({
+      key: 'rp_registration_enabled',
+      value: 'true',
+      updatedAt: new Date(),
+    });
+
     // Create sample sponsor
     await db.collection('sponsors').doc('sponsor1').set({
       name: 'CSS FARMS Nigeria',

@@ -671,6 +671,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/auth/verify-reset-code', async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      
+      if (!email || !code) {
+        return res.status(400).json({ message: "Email and code are required" });
+      }
+
+      // Check stored reset codes
+      global.resetCodes = global.resetCodes || {};
+      const storedData = global.resetCodes[email];
+
+      if (!storedData) {
+        return res.status(400).json({ message: "No reset code found for this email" });
+      }
+
+      if (new Date() > storedData.expiry) {
+        // Clean up expired code
+        delete global.resetCodes[email];
+        return res.status(400).json({ message: "Reset code has expired" });
+      }
+
+      if (storedData.code !== code) {
+        return res.status(400).json({ message: "Invalid reset code" });
+      }
+
+      // Code is valid, but don't delete it yet (will be used in reset-password)
+      res.json({ message: "Verification code is valid" });
+    } catch (error) {
+      console.error("Error in verify reset code:", error);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
       const { email, code, newPassword } = req.body;

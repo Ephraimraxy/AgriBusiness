@@ -45,11 +45,6 @@ interface ForgotPasswordModalProps {
 export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [resetStage, setResetStage] = useState<"email" | "code" | "password">("email");
-  const [resetCode, setResetCode] = useState("");
-  const [resetPassword, setResetPassword] = useState("");
-  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [resetEmailStage, setResetEmailStage] = useState<"email" | "verify" | "password">("email");
   const [phoneStage, setPhoneStage] = useState<"enter" | "otp" | "reset">("enter");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
   const [otp, setOtp] = useState("");
@@ -62,6 +57,13 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
   const [confirmPassword, setConfirmPassword] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  
+  // Password reset flow states
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetStage, setResetStage] = useState<"email" | "code" | "password">("email");
   
   const { toast } = useToast();
 
@@ -103,8 +105,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
           setProcessSteps(prev => prev.map(s => s.id === "check-email" ? { ...s, state: "success" } : s));
           setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
           
-          setIsSuccess(true);
-          setResetEmailStage("verify"); // Move to verification stage
+          setResetEmail(data.email);
+          setEmailStage("verify"); // Move to verification stage
           toast({
             title: "Password reset code sent!",
             description: `Check your email for the verification code. ${result.devCode ? `Dev code: ${result.devCode}` : ''}`,
@@ -165,13 +167,13 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
       setIsLoading(true);
       setVerificationError("");
 
-      const response = await fetch('/api/auth/reset-password', {
+      // First, just verify the code without changing password
+      const response = await fetch('/api/auth/verify-reset-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: form.getValues("email"), 
-          code: verificationCode,
-          newPassword: "temp" // We'll update this in the next step
+          email: resetEmail, 
+          code: verificationCode
         })
       });
 
@@ -212,7 +214,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: form.getValues("email"), 
+          email: resetEmail, 
           code: verificationCode,
           newPassword: newPassword
         })
@@ -368,12 +370,15 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+              <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} aria-describedby="forgot-password-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-green-600" />
             Reset Your Password
           </DialogTitle>
+          <div id="forgot-password-description" className="sr-only">
+            Form to reset your password using email verification or phone number
+          </div>
         </DialogHeader>
 
         {!isSuccess ? (

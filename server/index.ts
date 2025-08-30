@@ -2,16 +2,10 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import path from "path";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import { registerRoutes } from "./routes";
 // IMPORTANT: avoid importing from './vite' at the top level to prevent bundling 'vite' in production
 import { initializeFirebase } from "./initialize-firebase";
 import { testEmailConnection } from "./emailService";
-
-// ES module equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -100,12 +94,13 @@ app.use((req, res, next) => {
   // Serve static files from the built React app
   if (process.env.NODE_ENV === 'production') {
     // Serve static files from the client/dist directory
-    app.use(express.static(path.join(__dirname, '../client/dist')));
+    const clientDistPath = path.resolve(process.cwd(), 'client/dist');
+    app.use(express.static(clientDistPath));
     
     // Handle React Router by serving index.html for all non-API routes
     app.get('*', (req, res) => {
       if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+        res.sendFile(path.join(clientDistPath, 'index.html'));
       }
     });
     

@@ -9,14 +9,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { db } from "./firebase";
 import { sendVerificationEmail } from "./emailService";
-import { 
-  set, 
-  doc, 
-  query, 
-  where, 
-  limit, 
-  getDocs 
-} from "firebase-admin/firestore";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware disabled for now since we're using Firebase and admin auth
@@ -52,43 +45,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check for existing email across all collections
       try {
         // Check in trainees collection
-        const traineesQuery = query(db.collection('trainees'), where('email', '==', email), limit(1));
-        const traineesSnapshot = await getDocs(traineesQuery);
+        const traineesSnapshot = await db.collection('trainees').where('email', '==', email).limit(1).get();
         if (!traineesSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a trainee' });
         }
 
         // Check in staff_registrations collection
-        const staffRegQuery = query(db.collection('staff_registrations'), where('email', '==', email), limit(1));
-        const staffRegSnapshot = await getDocs(staffRegQuery);
+        const staffRegSnapshot = await db.collection('staff_registrations').where('email', '==', email).limit(1).get();
         if (!staffRegSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a staff member' });
         }
 
         // Check in resource_person_registrations collection
-        const rpRegQuery = query(db.collection('resource_person_registrations'), where('email', '==', email), limit(1));
-        const rpRegSnapshot = await getDocs(rpRegQuery);
+        const rpRegSnapshot = await db.collection('resource_person_registrations').where('email', '==', email).limit(1).get();
         if (!rpRegSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a resource person' });
         }
 
         // Check in users collection
-        const usersQuery = query(db.collection('users'), where('email', '==', email), limit(1));
-        const usersSnapshot = await getDocs(usersQuery);
+        const usersSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
         if (!usersSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered in the system' });
         }
 
         // Check in staffs collection
-        const staffsQuery = query(db.collection('staffs'), where('email', '==', email), limit(1));
-        const staffsSnapshot = await getDocs(staffsQuery);
+        const staffsSnapshot = await db.collection('staffs').where('email', '==', email).limit(1).get();
         if (!staffsSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a staff member' });
         }
 
         // Check in resource_persons collection
-        const rpQuery = query(collection(db, 'resource_persons'), where('email', '==', email), limit(1));
-        const rpSnapshot = await getDocs(rpQuery);
+        const rpSnapshot = await db.collection('resource_persons').where('email', '==', email).limit(1).get();
         if (!rpSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a resource person' });
         }
@@ -303,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { uid, email, firstName, lastName } = req.body;
 
-      await setDoc(doc(db, 'users', uid), {
+      await db.collection('users').doc(uid).set({
         id: uid,
         email,
         firstName,

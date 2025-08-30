@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { registerRoutes } from "./routes";
 // IMPORTANT: avoid importing from './vite' at the top level to prevent bundling 'vite' in production
 import { initializeFirebase } from "./initialize-firebase";
@@ -21,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// Minimal CORS middleware to allow Netlify frontend with credentials
+// Minimal CORS middleware to allow external access if needed
 const allowedOrigins = new Set([
   'https://css-isac.netlify.app',
   'http://localhost:5173',
@@ -90,18 +91,30 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Only setup Vite in development to avoid bundling it in production
-  if (process.env.NODE_ENV !== 'production' && app.get("env") === "development") {
-    const viteMod = await import("./vite.js").catch(() => undefined);
-    if (viteMod && typeof (viteMod as any).setupVite === 'function') {
-      await (viteMod as any).setupVite(app, server);
-      (viteMod as any).log?.("Vite dev middleware enabled", "vite");
-    } else {
-      log("Vite not available; running API only in dev.");
-    }
+  // Serve static files from the built React app
+  if (process.env.NODE_ENV === 'production') {
+    // Serve static files from the client/dist directory
+    app.use(express.static(path.join(__dirname, '../client/dist')));
+    
+    // Handle React Router by serving index.html for all non-API routes
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+      }
+    });
+    
+    log("Production mode: serving API + React frontend");
   } else {
-    // In production (Render), we serve API only; frontend is on Netlify
-    log("Production mode: serving API only (no static client)");
+    // Only setup Vite in development to avoid bundling it in production
+    if (app.get("env") === "development") {
+      const viteMod = await import("./vite.js").catch(() => undefined);
+      if (viteMod && typeof (viteMod as any).setupVite === 'function') {
+        await (viteMod as any).setupVite(app, server);
+        (viteMod as any).log?.("Vite dev middleware enabled", "vite");
+      } else {
+        log("Vite not available; running API only in dev.");
+      }
+    }
   }
 
   const port = parseInt(process.env.PORT || '5000', 10);

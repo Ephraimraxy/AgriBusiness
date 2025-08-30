@@ -35,7 +35,8 @@ async function throwIfResNotOk(res: Response) {
 }
 
 // Base URL for API requests
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_PUBLIC_API_URL || 'http://localhost:3001';
+// In production (Render), use relative paths since frontend and API are on same domain
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_PUBLIC_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 export async function apiRequest(
   urlOrMethod: string,

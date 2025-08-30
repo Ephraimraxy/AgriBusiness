@@ -38,7 +38,7 @@ import {
   deleteDoc,
   Timestamp,
   writeBatch
-} from "firebase/firestore";
+} from "firebase-admin/firestore";
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth

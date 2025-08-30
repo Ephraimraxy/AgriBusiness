@@ -7,10 +7,17 @@ import { authenticateAdmin, isAdminAuthenticated, destroyAdminSession, verifyAdm
 import { insertSponsorSchema, insertTraineeSchema, insertContentSchema, insertAnnouncementSchema, insertAnnouncementReplySchema, insertExamSchema, insertExamQuestionSchema } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
-import { setDoc, doc, getFirestore, collection, query, where, limit, getDocs } from "firebase/firestore";
+import { db } from "./firebase";
 import { sendVerificationEmail } from "./emailService";
-
-const db = getFirestore();
+import { 
+  setDoc, 
+  doc, 
+  collection, 
+  query, 
+  where, 
+  limit, 
+  getDocs 
+} from "firebase-admin/firestore";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware disabled for now since we're using Firebase and admin auth

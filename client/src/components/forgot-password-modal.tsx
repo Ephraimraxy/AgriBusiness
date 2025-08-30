@@ -45,6 +45,11 @@ interface ForgotPasswordModalProps {
 export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [resetStage, setResetStage] = useState<"email" | "code" | "password">("email");
+  const [resetCode, setResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetEmailStage, setResetEmailStage] = useState<"email" | "verify" | "password">("email");
   const [phoneStage, setPhoneStage] = useState<"enter" | "otp" | "reset">("enter");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
   const [otp, setOtp] = useState("");
@@ -99,7 +104,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
           setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
           
           setIsSuccess(true);
-          setEmailStage("verify"); // Move to verification stage
+          setResetEmailStage("verify"); // Move to verification stage
           toast({
             title: "Password reset code sent!",
             description: `Check your email for the verification code. ${result.devCode ? `Dev code: ${result.devCode}` : ''}`,

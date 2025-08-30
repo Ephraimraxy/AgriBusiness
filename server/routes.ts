@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sponsor routes
-  app.get('/api/sponsors', isAdminAuthenticated, async (req, res) => {
+  app.get('/api/sponsors', async (req, res) => {
     try {
       const sponsors = await storage.getSponsors();
       res.json(sponsors);
@@ -629,6 +629,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in forgot password:", error);
       res.status(500).json({ message: "Password reset request failed" });
+    }
+  });
+
+  // Verify reset code first
+  app.post('/api/auth/verify-reset-code', async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      
+      if (!email || !code) {
+        return res.status(400).json({ message: "Email and code are required" });
+      }
+
+      // Check stored reset codes
+      global.resetCodes = global.resetCodes || {};
+      const storedData = global.resetCodes[email];
+
+      if (!storedData) {
+        return res.status(400).json({ message: "No reset code found for this email" });
+      }
+
+      if (new Date() > storedData.expiry) {
+        // Clean up expired code
+        delete global.resetCodes[email];
+        return res.status(400).json({ message: "Reset code has expired" });
+      }
+
+      if (storedData.code !== code) {
+        return res.status(400).json({ message: "Invalid reset code" });
+      }
+
+      // Code is valid, return success
+      res.json({ 
+        message: "Reset code verified successfully",
+        email,
+        traineeId: storedData.traineeId
+      });
+    } catch (error) {
+      console.error("Error in verify reset code:", error);
+      res.status(500).json({ message: "Code verification failed" });
     }
   });
 

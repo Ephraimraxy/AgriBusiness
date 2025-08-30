@@ -5,7 +5,6 @@ import path from "path";
 import { db } from "./firebase";
 import {
   collection,
-  add,
   getDocs,
   query,
   orderBy,
@@ -82,7 +81,7 @@ export function registerVideoFileRoutes(app: Express) {
         duration = undefined;
       }
       
-      const docRef = await add(videosCol, {
+      const docRef = await videosCol.add({
         originalName: originalname,
         fileName: filename,
         mimeType: mimetype,
@@ -171,7 +170,7 @@ export function registerVideoFileRoutes(app: Express) {
       if (!req.file) return res.status(400).json({ message: "No file uploaded" });
       const uploadedFile = req.file as Express.Multer.File;
       const { originalname, filename, mimetype, size, path: filePath } = uploadedFile;
-      const docRef = await add(filesCol, {
+      const docRef = await filesCol.add({
         originalName: originalname,
         fileName: filename,
         mimeType: mimetype,

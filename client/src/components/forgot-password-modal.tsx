@@ -72,20 +72,31 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
           { id: "send-email", label: "Send reset email", state: "idle" },
         ]);
 
-        const exists = await checkEmailExists(data.email);
-        setProcessSteps(prev => prev.map(s => s.id === "check-email" ? { ...s, state: (exists ? "success" : "error") } : s));
-        if (!exists) {
-          throw new Error("No account found with this email");
+        // Use API instead of Firebase Auth
+        try {
+          const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: data.email })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to send password reset email");
+          }
+          
+          const result = await response.json();
+          setProcessSteps(prev => prev.map(s => s.id === "check-email" ? { ...s, state: "success" } : s));
+          setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
+          
+          setIsSuccess(true);
+          toast({
+            title: "Password reset code sent!",
+            description: `Check your email for the verification code. ${result.devCode ? `Dev code: ${result.devCode}` : ''}`,
+          });
+        } catch (apiError: any) {
+          throw new Error(apiError.message || "Failed to send password reset email");
         }
-
-        setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "running" } : s));
-        await sendPasswordResetEmail(auth, data.email);
-        setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
-        setIsSuccess(true);
-        toast({
-          title: "Password reset email sent!",
-          description: "Check your email for instructions to reset your password.",
-        });
       } else {
         // For phone, only handle final reset via submit
         if (phoneStage !== "reset") {
@@ -466,13 +477,13 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-900">Check Your Email</h3>
               <p className="text-sm text-gray-600">
-                We've sent a password reset link to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
+                We've sent a password reset verification code to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
               </p>
             </div>
 
             <div className="space-y-3 text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
               <p className="font-medium text-blue-800">📧 Email Delivery Status:</p>
-              <p>✅ <strong>Email sent successfully</strong> from Firebase</p>
+              <p>✅ <strong>Verification code sent successfully</strong></p>
               <p>⏳ <strong>Delivery time:</strong> Usually 1-5 minutes</p>
               <p>📁 <strong>Check these folders:</strong></p>
               <ul className="list-disc list-inside ml-4 text-left">
@@ -484,8 +495,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             </div>
 
             <div className="space-y-3 text-sm text-gray-600">
-              <p>• Click the link in your email to reset your password</p>
-              <p>• The link will expire in 1 hour</p>
+              <p>• Enter the 6-digit verification code from your email</p>
+              <p>• The code will expire in 15 minutes</p>
               <p>• If you don't see it in 10 minutes, check spam folder</p>
             </div>
 

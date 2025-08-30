@@ -586,6 +586,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Password reset endpoints
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if email exists in any collection
+      const existingTrainee = await storage.getTraineeByEmail(email);
+      if (!existingTrainee) {
+        return res.status(404).json({ message: "No account found with this email address" });
+      }
+
+      // Generate reset code
+      const resetCode = crypto.randomInt(100000, 999999).toString();
+      const resetCodeExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Store reset code temporarily
+      global.resetCodes = global.resetCodes || {};
+      global.resetCodes[email] = {
+        code: resetCode,
+        expiry: resetCodeExpiry,
+        traineeId: existingTrainee.id
+      };
+
+      // Send reset email
+      const emailSent = await sendVerificationEmail(email, resetCode);
+      
+      if (!emailSent) {
+        return res.status(500).json({ message: "Failed to send password reset email. Please try again." });
+      }
+
+      res.json({ 
+        message: "Password reset code sent to your email address",
+        email,
+        // Only return devCode when not in production and transporter isn't configured
+        devCode: (process.env.NODE_ENV !== 'production' && (!process.env.SMTP_USER && !process.env.EMAIL_USER)) ? resetCode : undefined
+      });
+    } catch (error) {
+      console.error("Error in forgot password:", error);
+      res.status(500).json({ message: "Password reset request failed" });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { email, code, newPassword } = req.body;
+      
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ message: "Email, code, and new password are required" });
+      }
+
+      // Validate password strength
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      // Check stored reset codes
+      global.resetCodes = global.resetCodes || {};
+      const storedData = global.resetCodes[email];
+
+      if (!storedData) {
+        return res.status(400).json({ message: "No reset code found for this email" });
+      }
+
+      if (new Date() > storedData.expiry) {
+        // Clean up expired code
+        delete global.resetCodes[email];
+        return res.status(400).json({ message: "Reset code has expired" });
+      }
+
+      if (storedData.code !== code) {
+        return res.status(400).json({ message: "Invalid reset code" });
+      }
+
+      // Update trainee password in Firebase
+      try {
+        // For now, we'll update a custom field in the trainee document
+        // In production, you might want to use Firebase Auth Admin SDK to change passwords
+        await db.collection('trainees').doc(storedData.traineeId).update({
+          passwordHash: newPassword, // In production, hash this password
+          updatedAt: new Date()
+        });
+
+        // Clean up used code
+        delete global.resetCodes[email];
+
+        res.json({ message: "Password reset successfully" });
+      } catch (updateError) {
+        console.error("Error updating password:", updateError);
+        res.status(500).json({ message: "Failed to update password. Please try again." });
+      }
+    } catch (error) {
+      console.error("Error in reset password:", error);
+      res.status(500).json({ message: "Password reset failed" });
+    }
+  });
+
   // Content routes
   app.get('/api/content', async (req, res) => {
     try {

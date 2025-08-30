@@ -615,9 +615,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create reset URL
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://agribusiness-2.onrender.com' 
+        ? (process.env.RENDER_EXTERNAL_URL || 'https://agribusiness-2.onrender.com')
         : 'http://localhost:3000';
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+      
+      console.log('[PASSWORD RESET DEBUG] Generated reset URL:', resetUrl);
+      console.log('[PASSWORD RESET DEBUG] Token stored:', resetToken);
+      console.log('[PASSWORD RESET DEBUG] Global tokens count:', Object.keys(global.resetTokens || {}).length);
 
       // Send reset email with link
       const emailSent = await sendPasswordResetEmail(email, resetUrl);
@@ -699,6 +703,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { token } = req.params;
       
+      console.log('[PASSWORD RESET DEBUG] Verifying token:', token);
+      console.log('[PASSWORD RESET DEBUG] Available tokens:', Object.keys(global.resetTokens || {}));
+      
       if (!token) {
         return res.status(400).json({ message: "Token is required" });
       }
@@ -706,6 +713,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check stored reset tokens
       global.resetTokens = global.resetTokens || {};
       const storedData = global.resetTokens[token];
+
+      console.log('[PASSWORD RESET DEBUG] Stored data for token:', storedData);
 
       if (!storedData) {
         return res.status(400).json({ message: "Invalid reset token" });

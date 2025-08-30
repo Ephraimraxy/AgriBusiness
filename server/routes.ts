@@ -636,44 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Verify reset code first
-  app.post('/api/auth/verify-reset-code', async (req, res) => {
-    try {
-      const { email, code } = req.body;
-      
-      if (!email || !code) {
-        return res.status(400).json({ message: "Email and code are required" });
-      }
 
-      // Check stored reset codes
-      global.resetCodes = global.resetCodes || {};
-      const storedData = global.resetCodes[email];
-
-      if (!storedData) {
-        return res.status(400).json({ message: "No reset code found for this email" });
-      }
-
-      if (new Date() > storedData.expiry) {
-        // Clean up expired code
-        delete global.resetCodes[email];
-        return res.status(400).json({ message: "Reset code has expired" });
-      }
-
-      if (storedData.code !== code) {
-        return res.status(400).json({ message: "Invalid reset code" });
-      }
-
-      // Code is valid, return success
-      res.json({ 
-        message: "Reset code verified successfully",
-        email,
-        traineeId: storedData.traineeId
-      });
-    } catch (error) {
-      console.error("Error in verify reset code:", error);
-      res.status(500).json({ message: "Code verification failed" });
-    }
-  });
 
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
@@ -702,12 +665,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Reset token has expired" });
       }
 
-      // Update trainee password in Firebase
+      // Update trainee password in Firebase Auth
       try {
-        // Update the trainee's password using the storage service
-        await storage.updateTrainee(storedData.traineeId, {
-          passwordHash: newPassword, // In production, hash this password
-          updatedAt: new Date()
+        // Get the trainee to find their Firebase UID
+        const trainee = await storage.getTrainee(storedData.traineeId);
+        if (!trainee || !trainee.firebaseUid) {
+          throw new Error("Trainee not found or no Firebase UID");
+        }
+
+        // Update password in Firebase Auth using Admin SDK
+        const { getAuth } = await import('firebase-admin/auth');
+        const auth = getAuth();
+        await auth.updateUser(trainee.firebaseUid, {
+          password: newPassword
         });
 
         // Clean up used token

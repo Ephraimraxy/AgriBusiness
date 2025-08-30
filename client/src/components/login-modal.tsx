@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { LogIn, CheckCircle, XCircle, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ForgotPasswordModal from "./forgot-password-modal";
+
 import CSSFarmsLoader from "./ui/css-farms-loader";
 
 const loginSchema = z.object({
@@ -85,7 +85,7 @@ const getFirebaseErrorMessage = (errorCode: string): { title: string; message: s
 
 export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
   const [, setLocation] = useLocation();
   const [rememberMe, setRememberMe] = useState(false);
   const { toast } = useToast();
@@ -274,7 +274,10 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               </div>
               <button 
                 type="button"
-                onClick={() => setShowForgotPassword(true)}
+                onClick={() => {
+                  onClose();
+                  setLocation('/forgot-password');
+                }}
                 className="text-sm text-green-600 hover:text-green-700 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loginStatus === 'success'}
               >
@@ -311,11 +314,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </form>
         </Form>
 
-        {/* Forgot Password Modal */}
-        <ForgotPasswordModal 
-          isOpen={showForgotPassword} 
-          onClose={() => setShowForgotPassword(false)} 
-        />
+
       </DialogContent>
     </Dialog>
   );

@@ -12,7 +12,6 @@ import { sendVerificationEmail } from "./emailService";
 import { 
   set, 
   doc, 
-  collection, 
   query, 
   where, 
   limit, 
@@ -53,14 +52,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check for existing email across all collections
       try {
         // Check in trainees collection
-        const traineesQuery = query(collection(db, 'trainees'), where('email', '==', email), limit(1));
+        const traineesQuery = query(db.collection('trainees'), where('email', '==', email), limit(1));
         const traineesSnapshot = await getDocs(traineesQuery);
         if (!traineesSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a trainee' });
         }
 
         // Check in staff_registrations collection
-        const staffRegQuery = query(collection(db, 'staff_registrations'), where('email', '==', email), limit(1));
+        const staffRegQuery = query(db.collection('staff_registrations'), where('email', '==', email), limit(1));
         const staffRegSnapshot = await getDocs(staffRegQuery);
         if (!staffRegSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a staff member' });

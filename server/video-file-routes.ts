@@ -4,7 +4,6 @@ import fs from "fs";
 import path from "path";
 import { db } from "./firebase";
 import {
-  collection,
   getDocs,
   query,
   orderBy,
@@ -52,7 +51,7 @@ export function registerVideoFileRoutes(app: Express) {
   });
 
   // --------------------------------- Videos ---------------------------------
-  const videosCol = collection(db, "videos");
+  const videosCol = db.collection("videos");
 
   app.get("/api/videos", async (_req, res) => {
     try {

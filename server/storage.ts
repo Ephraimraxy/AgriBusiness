@@ -28,9 +28,9 @@ import {
   doc, 
   getDoc, 
   getDocs, 
-  addDoc, 
-  updateDoc, 
-  setDoc,
+  add, 
+  update, 
+  set,
   query, 
   where, 
   orderBy, 
@@ -208,7 +208,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
     
-    const docRef = await addDoc(collection(db, 'sponsors'), sponsorData);
+            const docRef = await add(collection(db, 'sponsors'), sponsorData);
     return { id: docRef.id, ...sponsorData } as Sponsor;
   }
 
@@ -343,7 +343,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
 
-    const docRef = await addDoc(collection(db, 'trainees'), traineeData);
+          const docRef = await add(collection(db, 'trainees'), traineeData);
     return { id: docRef.id, ...traineeData } as Trainee;
   }
 

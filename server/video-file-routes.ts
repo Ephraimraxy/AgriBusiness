@@ -5,15 +5,15 @@ import path from "path";
 import { db } from "./firebase";
 import {
   collection,
-  addDoc,
+  add,
   getDocs,
   query,
   orderBy,
   doc,
   getDoc,
   deleteDoc,
-  updateDoc,
-} from "firebase/firestore";
+  update,
+} from "firebase-admin/firestore";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -82,7 +82,7 @@ export function registerVideoFileRoutes(app: Express) {
         duration = undefined;
       }
       
-      const docRef = await addDoc(videosCol, {
+      const docRef = await add(videosCol, {
         originalName: originalname,
         fileName: filename,
         mimeType: mimetype,
@@ -171,7 +171,7 @@ export function registerVideoFileRoutes(app: Express) {
       if (!req.file) return res.status(400).json({ message: "No file uploaded" });
       const uploadedFile = req.file as Express.Multer.File;
       const { originalname, filename, mimetype, size, path: filePath } = uploadedFile;
-      const docRef = await addDoc(filesCol, {
+      const docRef = await add(filesCol, {
         originalName: originalname,
         fileName: filename,
         mimeType: mimetype,

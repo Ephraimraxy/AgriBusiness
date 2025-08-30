@@ -10,7 +10,7 @@ import crypto from "crypto";
 import { db } from "./firebase";
 import { sendVerificationEmail } from "./emailService";
 import { 
-  setDoc, 
+  set, 
   doc, 
   collection, 
   query, 

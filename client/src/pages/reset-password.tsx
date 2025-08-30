@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,8 +9,7 @@ import { CheckCircle, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import CSSFarmsLoader from '@/components/ui/css-farms-loader';
 
 export default function ResetPasswordPage() {
-  const [location] = useLocation();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const [token, setToken] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
@@ -125,7 +124,7 @@ export default function ResetPasswordPage() {
             </Alert>
             <div className="mt-4">
               <Button 
-                onClick={() => navigate('/')} 
+                onClick={() => setLocation('/')} 
                 className="w-full"
               >
                 Back to Login
@@ -150,7 +149,7 @@ export default function ResetPasswordPage() {
               Your password has been successfully reset. You can now log in with your new password.
             </p>
             <Button 
-              onClick={() => navigate('/')} 
+              onClick={() => setLocation('/')} 
               className="w-full"
             >
               Go to Login
@@ -258,7 +257,7 @@ export default function ResetPasswordPage() {
           <div className="mt-4 text-center">
             <Button
               variant="ghost"
-              onClick={() => navigate('/')}
+              onClick={() => setLocation('/')}
               className="text-sm text-gray-600 hover:text-gray-800"
             >
               Back to Login

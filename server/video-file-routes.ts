@@ -4,11 +4,6 @@ import fs from "fs";
 import path from "path";
 import { db } from "./firebase";
 import {
-  getDocs,
-  query,
-  orderBy,
-  doc,
-  getDoc,
   update,
 } from "firebase-admin/firestore";
 import { exec } from "child_process";
@@ -54,7 +49,7 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.get("/api/videos", async (_req, res) => {
     try {
-      const snapshot = await getDocs(query(videosCol, orderBy("uploadedAt", "desc")));
+      const snapshot = await videosCol.orderBy("uploadedAt", "desc").get();
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       res.json(data);
     } catch (err) {
@@ -97,8 +92,8 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.get("/api/videos/:id/stream", async (req, res) => {
     try {
-      const docSnap = await getDoc(doc(videosCol, req.params.id));
-      if (!docSnap.exists()) return res.status(404).json({ message: "Video not found" });
+      const docSnap = await videosCol.doc(req.params.id).get();
+      if (!docSnap.exists) return res.status(404).json({ message: "Video not found" });
       const data = docSnap.data() as any;
       const filePath = data.path;
       if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File missing" });
@@ -112,8 +107,8 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.get("/api/videos/:id/download", async (req, res) => {
     try {
-      const docSnap = await getDoc(doc(videosCol, req.params.id));
-      if (!docSnap.exists()) return res.status(404).json({ message: "Video not found" });
+      const docSnap = await videosCol.doc(req.params.id).get();
+      if (!docSnap.exists) return res.status(404).json({ message: "Video not found" });
       const data = docSnap.data() as any;
       const filePath = data.path;
       if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File missing" });
@@ -126,9 +121,9 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.delete("/api/videos/:id", async (req, res) => {
     try {
-      const ref = doc(videosCol, req.params.id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return res.status(404).json({ message: "Video not found" });
+      const ref = videosCol.doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ message: "Video not found" });
       const data = snap.data() as any;
       if (fs.existsSync(data.path)) fs.unlinkSync(data.path);
       await ref.delete();
@@ -144,7 +139,7 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.get("/api/files", async (_req, res) => {
     try {
-      const snapshot = await getDocs(query(filesCol, orderBy("uploadedAt", "desc")));
+      const snapshot = await filesCol.orderBy("uploadedAt", "desc").get();
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       
       // Temporarily filter out the problematic TXT file until we fix the database
@@ -185,8 +180,8 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.get("/api/files/:id/download", async (req, res) => {
     try {
-      const docSnap = await getDoc(doc(filesCol, req.params.id));
-      if (!docSnap.exists()) return res.status(404).json({ message: "File not found" });
+      const docSnap = await filesCol.doc(req.params.id).get();
+      if (!docSnap.exists) return res.status(404).json({ message: "File not found" });
       const data = docSnap.data() as any;
       const filePath = data.path;
       if (!fs.existsSync(filePath)) return res.status(404).json({ message: "File missing" });
@@ -201,8 +196,8 @@ export function registerVideoFileRoutes(app: Express) {
     try {
       console.log(`📁 File view request: ${req.params.id}`);
       
-      const docSnap = await getDoc(doc(filesCol, req.params.id));
-      if (!docSnap.exists()) {
+      const docSnap = await filesCol.doc(req.params.id).get();
+      if (!docSnap.exists) {
         console.error(`❌ File not found: ${req.params.id}`);
         return res.status(404).json({ message: "File not found" });
       }
@@ -250,9 +245,9 @@ export function registerVideoFileRoutes(app: Express) {
 
   app.delete("/api/files/:id", async (req, res) => {
     try {
-      const ref = doc(filesCol, req.params.id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return res.status(404).json({ message: "File not found" });
+      const ref = filesCol.doc(req.params.id);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ message: "File not found" });
       const data = snap.data() as any;
       if (fs.existsSync(data.path)) fs.unlinkSync(data.path);
       await ref.delete();

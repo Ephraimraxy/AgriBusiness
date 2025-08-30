@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { registerStaff, getGeneratedIds, updateDocument, getAllDocuments, Staff } from "@/lib/firebaseService";
+import { registerStaff, getGeneratedIds, updateDocument, Staff } from "@/lib/firebaseService";
+import { apiService } from "@/lib/apiService";
 import { collection, query, where, getDocs, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -53,7 +54,7 @@ export default function StaffRegistrationPage() {
 
     try {
       // Check in staff_registrations collection
-      const staffRegistrations = await getAllDocuments<Staff>("staff_registrations");
+      const staffRegistrations = await apiService.getAllDocuments<Staff>("staff_registrations");
       const existingInStaffReg = staffRegistrations.find(staff => staff.email === email);
       
       if (existingInStaffReg) {
@@ -61,7 +62,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in resource_person_registrations collection
-      const rpRegistrations = await getAllDocuments<any>("resource_person_registrations");
+      const rpRegistrations = await apiService.getAllDocuments<any>("resource_person_registrations");
       const existingInRpReg = rpRegistrations.find(rp => rp.email === email);
       
       if (existingInRpReg) {
@@ -69,7 +70,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in trainees collection
-      const trainees = await getAllDocuments<any>("trainees");
+      const trainees = await apiService.getAllDocuments<any>("trainees");
       const existingInTrainees = trainees.find(trainee => trainee.email === email);
       
       if (existingInTrainees) {
@@ -77,7 +78,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in users collection
-      const users = await getAllDocuments<any>("users");
+      const users = await apiService.getAllDocuments<any>("users");
       const existingInUsers = users.find(user => user.email === email);
       
       if (existingInUsers) {
@@ -85,7 +86,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in staffs collection (fallback)
-      const staffs = await getAllDocuments<Staff>("staffs");
+      const staffs = await apiService.getAllDocuments<Staff>("staffs");
       const existingInStaffs = staffs.find(staff => staff.email === email);
       
       if (existingInStaffs) {
@@ -93,7 +94,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in resource_persons collection (fallback)
-      const resourcePersons = await getAllDocuments<any>("resource_persons");
+      const resourcePersons = await apiService.getAllDocuments<any>("resource_persons");
       const existingInRp = resourcePersons.find(rp => rp.email === email);
       
       if (existingInRp) {
@@ -122,7 +123,7 @@ export default function StaffRegistrationPage() {
 
     try {
       // Check in staff_registrations collection
-      const staffRegistrations = await getAllDocuments<Staff>("staff_registrations");
+      const staffRegistrations = await apiService.getAllDocuments<Staff>("staff_registrations");
       const existingInStaffReg = staffRegistrations.find(staff => staff.phone === phone);
       
       if (existingInStaffReg) {
@@ -130,7 +131,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in resource_person_registrations collection
-      const rpRegistrations = await getAllDocuments<any>("resource_person_registrations");
+      const rpRegistrations = await apiService.getAllDocuments<any>("resource_person_registrations");
       const existingInRpReg = rpRegistrations.find(rp => rp.phone === phone);
       
       if (existingInRpReg) {
@@ -138,7 +139,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in trainees collection
-      const trainees = await getAllDocuments<any>("trainees");
+      const trainees = await apiService.getAllDocuments<any>("trainees");
       const existingInTrainees = trainees.find(trainee => trainee.phone === phone);
       
       if (existingInTrainees) {
@@ -146,7 +147,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in users collection
-      const users = await getAllDocuments<any>("users");
+      const users = await apiService.getAllDocuments<any>("users");
       const existingInUsers = users.find(user => user.phone === phone);
       
       if (existingInUsers) {
@@ -154,7 +155,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in staffs collection (fallback)
-      const staffs = await getAllDocuments<Staff>("staffs");
+      const staffs = await apiService.getAllDocuments<Staff>("staffs");
       const existingInStaffs = staffs.find(staff => staff.phone === phone);
       
       if (existingInStaffs) {
@@ -162,7 +163,7 @@ export default function StaffRegistrationPage() {
       }
 
       // Check in resource_persons collection (fallback)
-      const resourcePersons = await getAllDocuments<any>("resource_persons");
+      const resourcePersons = await apiService.getAllDocuments<any>("resource_persons");
       const existingInRp = resourcePersons.find(rp => rp.phone === phone);
       
       if (existingInRp) {

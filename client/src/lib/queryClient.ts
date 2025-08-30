@@ -134,9 +134,17 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
+      // Disable debug logging
+      gcTime: 5 * 60 * 1000, // 5 minutes
     },
     mutations: {
       retry: false,
     },
+  },
+  // Disable all debug logging
+  logger: {
+    log: () => {},
+    warn: () => {},
+    error: console.error,
   },
 });

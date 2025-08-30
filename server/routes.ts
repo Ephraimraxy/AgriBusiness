@@ -8,7 +8,7 @@ import { insertSponsorSchema, insertTraineeSchema, insertContentSchema, insertAn
 import { z } from "zod";
 import crypto from "crypto";
 import { db } from "./firebase";
-import { sendVerificationEmail } from "./emailService";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -601,30 +601,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "No account found with this email address" });
       }
 
-      // Generate reset code
-      const resetCode = crypto.randomInt(100000, 999999).toString();
-      const resetCodeExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-      // Store reset code temporarily
-      global.resetCodes = global.resetCodes || {};
-      global.resetCodes[email] = {
-        code: resetCode,
-        expiry: resetCodeExpiry,
-        traineeId: existingTrainee.id
+      // Store reset token temporarily
+      global.resetTokens = global.resetTokens || {};
+      global.resetTokens[resetToken] = {
+        email: email,
+        traineeId: existingTrainee.id,
+        expiry: resetTokenExpiry
       };
 
-      // Send reset email
-      const emailSent = await sendVerificationEmail(email, resetCode);
+      // Create reset URL
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://agribusiness-2.onrender.com' 
+        : 'http://localhost:3000';
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+      // Send reset email with link
+      const emailSent = await sendPasswordResetEmail(email, resetUrl);
       
       if (!emailSent) {
         return res.status(500).json({ message: "Failed to send password reset email. Please try again." });
       }
 
       res.json({ 
-        message: "Password reset code sent to your email address",
-        email,
-        // Only return devCode when not in production and transporter isn't configured
-        devCode: (process.env.NODE_ENV !== 'production' && (!process.env.SMTP_USER && !process.env.EMAIL_USER)) ? resetCode : undefined
+        message: "Password reset link sent to your email address",
+        email
       });
     } catch (error) {
       console.error("Error in forgot password:", error);
@@ -671,46 +675,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/verify-reset-code', async (req, res) => {
-    try {
-      const { email, code } = req.body;
-      
-      if (!email || !code) {
-        return res.status(400).json({ message: "Email and code are required" });
-      }
-
-      // Check stored reset codes
-      global.resetCodes = global.resetCodes || {};
-      const storedData = global.resetCodes[email];
-
-      if (!storedData) {
-        return res.status(400).json({ message: "No reset code found for this email" });
-      }
-
-      if (new Date() > storedData.expiry) {
-        // Clean up expired code
-        delete global.resetCodes[email];
-        return res.status(400).json({ message: "Reset code has expired" });
-      }
-
-      if (storedData.code !== code) {
-        return res.status(400).json({ message: "Invalid reset code" });
-      }
-
-      // Code is valid, but don't delete it yet (will be used in reset-password)
-      res.json({ message: "Verification code is valid" });
-    } catch (error) {
-      console.error("Error in verify reset code:", error);
-      res.status(500).json({ message: "Verification failed" });
-    }
-  });
-
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
-      const { email, code, newPassword } = req.body;
+      const { token, newPassword } = req.body;
       
-      if (!email || !code || !newPassword) {
-        return res.status(400).json({ message: "Email, code, and new password are required" });
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
       }
 
       // Validate password strength
@@ -718,22 +688,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Password must be at least 6 characters long" });
       }
 
-      // Check stored reset codes
-      global.resetCodes = global.resetCodes || {};
-      const storedData = global.resetCodes[email];
+      // Check stored reset tokens
+      global.resetTokens = global.resetTokens || {};
+      const storedData = global.resetTokens[token];
 
       if (!storedData) {
-        return res.status(400).json({ message: "No reset code found for this email" });
+        return res.status(400).json({ message: "Invalid or expired reset token" });
       }
 
       if (new Date() > storedData.expiry) {
-        // Clean up expired code
-        delete global.resetCodes[email];
-        return res.status(400).json({ message: "Reset code has expired" });
-      }
-
-      if (storedData.code !== code) {
-        return res.status(400).json({ message: "Invalid reset code" });
+        // Clean up expired token
+        delete global.resetTokens[token];
+        return res.status(400).json({ message: "Reset token has expired" });
       }
 
       // Update trainee password in Firebase
@@ -745,8 +711,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: new Date()
         });
 
-        // Clean up used code
-        delete global.resetCodes[email];
+        // Clean up used token
+        delete global.resetTokens[token];
 
         res.json({ message: "Password reset successfully" });
       } catch (updateError) {
@@ -756,6 +722,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in reset password:", error);
       res.status(500).json({ message: "Password reset failed" });
+    }
+  });
+
+  // Verify reset token endpoint
+  app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      // Check stored reset tokens
+      global.resetTokens = global.resetTokens || {};
+      const storedData = global.resetTokens[token];
+
+      if (!storedData) {
+        return res.status(400).json({ message: "Invalid reset token" });
+      }
+
+      if (new Date() > storedData.expiry) {
+        // Clean up expired token
+        delete global.resetTokens[token];
+        return res.status(400).json({ message: "Reset token has expired" });
+      }
+
+      res.json({ 
+        message: "Token is valid",
+        email: storedData.email
+      });
+    } catch (error) {
+      console.error("Error in verify reset token:", error);
+      res.status(500).json({ message: "Token verification failed" });
     }
   });
 

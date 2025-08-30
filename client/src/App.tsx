@@ -21,6 +21,7 @@ import Exams from "@/pages/exams";
 import Results from "@/pages/results";
 import ViewTraineesAdvanced from "@/pages/view-trainees-advanced";
 import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 
 // Original App imports
 import OriginalMain from "@/pages/original-main";
@@ -95,6 +96,7 @@ function Router() {
       <Route path="/123456" component={AdminLogin} />
       <Route path="/admin/view-trainees" component={ViewTraineesAdvanced} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       
       {/* Protected Routes - Always registered but protected at component level */}
       <Route path="/home" component={(props: any) => <ProtectedRoute component={Home} {...props} />} />

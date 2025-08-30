@@ -128,6 +128,77 @@ export async function sendVerificationEmail(email: string, code: string): Promis
   }
 }
 
+export async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<boolean> {
+  console.log('[EMAIL DEBUG] sendPasswordResetEmail called with:', { email, resetUrl });
+  console.log('[EMAIL DEBUG] transporter exists:', !!transporter);
+  console.log('[EMAIL DEBUG] devFallback:', devFallback);
+  
+  // Dev fallback: Return success and emit the URL to logs
+  if (!transporter || devFallback) {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      console.error('[EMAIL] No SMTP configuration found in production. Set SMTP_* or EMAIL_* environment variables.');
+      return false;
+    }
+    console.warn('[DEV] Email not configured. Returning success and logging reset URL.');
+    console.info(`[DEV] Password reset URL for ${email}: ${resetUrl}`);
+    return true;
+  }
+  
+  try {
+    const fromAddress = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER || 'noreply@cssfarms.ng';
+    console.log('[EMAIL DEBUG] Using from address:', fromAddress);
+    
+    const mailOptions = {
+      from: fromAddress,
+      to: email,
+      subject: 'CSS FARMS - Password Reset Request',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #2d5a2d; color: white; padding: 20px; text-align: center;">
+            <img src="https://cssfarms.ng/wp-content/uploads/2024/12/scrnli_QWDQo0eIg5qH8M.png" alt="CSS FARMS" style="height: 60px; margin-bottom: 10px;">
+            <h1>Password Reset</h1>
+          </div>
+          
+          <div style="padding: 30px; background-color: #f9f9f9;">
+            <h2 style="color: #2d5a2d;">Reset Your Password</h2>
+            
+            <p>You requested to reset your password for your CSS FARMS Training Program account. Click the button below to create a new password:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="display: inline-block; background-color: #2d5a2d; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Reset My Password
+              </a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="color: #2d5a2d; font-size: 14px; word-break: break-all;">${resetUrl}</p>
+            
+            <p style="color: #666;">This link will expire in 1 hour. If you didn't request this password reset, please ignore this email.</p>
+            
+            <p style="color: #666; margin-top: 30px;">
+              Best regards,<br>
+              <strong>CSS FARMS Nigeria Team</strong>
+            </p>
+          </div>
+          
+          <div style="background-color: #2d5a2d; color: white; padding: 15px; text-align: center; font-size: 12px;">
+            <p>© 2024 CSS FARMS Nigeria. All rights reserved.</p>
+          </div>
+        </div>
+      `
+    };
+
+    console.log('[EMAIL DEBUG] Attempting to send password reset email...');
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent successfully:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    return false;
+  }
+}
+
 // Test email configuration
 export async function testEmailConnection(): Promise<boolean> {
   try {

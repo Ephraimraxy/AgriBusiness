@@ -45,6 +45,11 @@ interface ForgotPasswordModalProps {
 export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [resetStage, setResetStage] = useState<"email" | "code" | "password">("email");
+  const [resetCode, setResetCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetEmailStage, setResetEmailStage] = useState<"email" | "verify" | "password">("email");
   const [phoneStage, setPhoneStage] = useState<"enter" | "otp" | "reset">("enter");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
   const [otp, setOtp] = useState("");
@@ -57,13 +62,6 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
   const [confirmPassword, setConfirmPassword] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  
-  // Password reset flow states
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetCode, setResetCode] = useState("");
-  const [resetNewPassword, setResetNewPassword] = useState("");
-  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
-  const [resetStage, setResetStage] = useState<"email" | "code" | "password">("email");
   
   const { toast } = useToast();
 
@@ -105,11 +103,10 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
           setProcessSteps(prev => prev.map(s => s.id === "check-email" ? { ...s, state: "success" } : s));
           setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
           
-          setResetEmail(data.email);
-          setEmailStage("verify"); // Move to verification stage
+          setIsSuccess(true);
           toast({
-            title: "Password reset code sent!",
-            description: `Check your email for the verification code. ${result.devCode ? `Dev code: ${result.devCode}` : ''}`,
+            title: "Password reset link sent!",
+            description: "Check your email for the password reset link. Click the link to reset your password.",
           });
         } catch (apiError: any) {
           throw new Error(apiError.message || "Failed to send password reset email");
@@ -167,13 +164,13 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
       setIsLoading(true);
       setVerificationError("");
 
-      // First, just verify the code without changing password
-      const response = await fetch('/api/auth/verify-reset-code', {
+      const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: resetEmail, 
-          code: verificationCode
+          email: form.getValues("email"), 
+          code: verificationCode,
+          newPassword: "temp" // We'll update this in the next step
         })
       });
 
@@ -214,7 +211,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: resetEmail, 
+          email: form.getValues("email"), 
           code: verificationCode,
           newPassword: newPassword
         })
@@ -370,15 +367,12 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-              <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} aria-describedby="forgot-password-description">
+      <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-green-600" />
             Reset Your Password
           </DialogTitle>
-          <div id="forgot-password-description" className="sr-only">
-            Form to reset your password using email verification or phone number
-          </div>
         </DialogHeader>
 
         {!isSuccess ? (
@@ -721,13 +715,13 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-900">Check Your Email</h3>
               <p className="text-sm text-gray-600">
-                We've sent a password reset verification code to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
+                We've sent a password reset link to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
               </p>
             </div>
 
             <div className="space-y-3 text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
               <p className="font-medium text-blue-800">📧 Email Delivery Status:</p>
-              <p>✅ <strong>Verification code sent successfully</strong></p>
+              <p>✅ <strong>Password reset link sent successfully</strong></p>
               <p>⏳ <strong>Delivery time:</strong> Usually 1-5 minutes</p>
               <p>📁 <strong>Check these folders:</strong></p>
               <ul className="list-disc list-inside ml-4 text-left">
@@ -739,8 +733,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             </div>
 
             <div className="space-y-3 text-sm text-gray-600">
-              <p>• Enter the 6-digit verification code from your email</p>
-              <p>• The code will expire in 15 minutes</p>
+              <p>• Click the "Reset My Password" button in your email</p>
+              <p>• The link will expire in 1 hour</p>
               <p>• If you don't see it in 10 minutes, check spam folder</p>
             </div>
 

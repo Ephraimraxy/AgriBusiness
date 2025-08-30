@@ -101,13 +101,14 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
           
           const result = await response.json();
           setProcessSteps(prev => prev.map(s => s.id === "check-email" ? { ...s, state: "success" } : s));
-          setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
+        setProcessSteps(prev => prev.map(s => s.id === "send-email" ? { ...s, state: "success" } : s));
           
-          setIsSuccess(true);
-          toast({
-            title: "Password reset link sent!",
-            description: "Check your email for the password reset link. Click the link to reset your password.",
-          });
+        setIsSuccess(true);
+        setResetStage("code"); // Move to code verification stage
+        toast({
+            title: "Verification code sent!",
+            description: `Check your email for the 6-digit verification code. ${result.devCode ? `Dev code: ${result.devCode}` : ''}`,
+        });
         } catch (apiError: any) {
           throw new Error(apiError.message || "Failed to send password reset email");
         }
@@ -236,8 +237,49 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
     }
   };
 
+  const handleVerifyResetCode = async () => {
+    try {
+      setIsLoading(true);
+      const email = form.getValues("email");
+      
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          code: resetCode, 
+          newPassword: resetPassword 
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to reset password");
+      }
+      
+      toast({
+        title: "Password reset successful!",
+        description: "Your password has been updated. You can now log in with your new password.",
+      });
+      
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "Password reset failed",
+        description: error.message || "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleClose = () => {
     setIsSuccess(false);
+    setResetStage("email");
+    setResetCode("");
+    setResetPassword("");
+    setResetConfirmPassword("");
     setPhoneStage("enter");
     setEmailStage("enter");
     setConfirmation(null);
@@ -705,6 +747,120 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
               </div>
             </div>
           </div>
+        ) : resetStage === "code" ? (
+          // Verification code input form
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Mail className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Enter Verification Code</h3>
+              <p className="text-sm text-gray-600">
+                We've sent a 6-digit verification code to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="resetCode">Verification Code</Label>
+                <Input
+                  id="resetCode"
+                  type="text"
+                  placeholder="123456"
+                  value={resetCode}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setResetCode(value);
+                  }}
+                  maxLength={6}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setResetStage("email");
+                    setIsSuccess(false);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Try Another Email
+                </Button>
+                <Button
+                  onClick={() => setResetStage("password")}
+                  disabled={resetCode.length !== 6}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Verify Code
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : resetStage === "password" ? (
+          // Password reset form
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Set New Password</h3>
+              <p className="text-sm text-gray-600">
+                Your email has been verified. Now set your new password.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="resetPassword">New Password</Label>
+                <Input
+                  id="resetPassword"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="resetConfirmPassword">Confirm Password</Label>
+                <Input
+                  id="resetConfirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={resetConfirmPassword}
+                  onChange={(e) => setResetConfirmPassword(e.target.value)}
+                />
+                {resetPassword !== resetConfirmPassword && resetConfirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">Passwords don't match</p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setResetStage("code")}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Back to Code
+                </Button>
+                <Button
+                  onClick={handleVerifyResetCode}
+                  disabled={isLoading || !resetPassword || resetPassword !== resetConfirmPassword || resetPassword.length < 6}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isLoading ? (
+                    <>
+                      <CSSFarmsLoader size="sm" className="mr-2" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Password"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
         ) : (
           // Original success message (fallback)
           <div className="text-center space-y-4">
@@ -715,13 +871,13 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-900">Check Your Email</h3>
               <p className="text-sm text-gray-600">
-                We've sent a password reset link to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
+                We've sent a password reset verification code to <span className="font-medium text-blue-600">{form.getValues("email")}</span>
               </p>
             </div>
 
             <div className="space-y-3 text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
               <p className="font-medium text-blue-800">📧 Email Delivery Status:</p>
-              <p>✅ <strong>Password reset link sent successfully</strong></p>
+              <p>✅ <strong>Verification code sent successfully</strong></p>
               <p>⏳ <strong>Delivery time:</strong> Usually 1-5 minutes</p>
               <p>📁 <strong>Check these folders:</strong></p>
               <ul className="list-disc list-inside ml-4 text-left">
@@ -733,8 +889,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
             </div>
 
             <div className="space-y-3 text-sm text-gray-600">
-              <p>• Click the "Reset My Password" button in your email</p>
-              <p>• The link will expire in 1 hour</p>
+              <p>• Enter the 6-digit verification code from your email</p>
+              <p>• The code will expire in 15 minutes</p>
               <p>• If you don't see it in 10 minutes, check spam folder</p>
             </div>
 
@@ -750,7 +906,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
                 Try Another Email
               </Button>
               <Button
-                onClick={() => setEmailStage("verify")}
+                onClick={() => setResetStage("code")}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
                 Enter Verification Code

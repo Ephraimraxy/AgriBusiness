@@ -238,7 +238,7 @@ export class DatabaseStorage implements IStorage {
 
   // Deactivate all sponsors (sets isActive=false on all documents)
   async deactivateAllSponsors(): Promise<void> {
-    const snapshot = await getDocs(collection(db, 'sponsors'));
+            const snapshot = await getDocs(db.collection('sponsors'));
     const now = new Date();
     const updates = snapshot.docs.map((docSnap) =>
       updateDoc(doc(db, 'sponsors', docSnap.id), {
@@ -315,7 +315,7 @@ export class DatabaseStorage implements IStorage {
 
   async createTrainee(trainee: InsertTrainee): Promise<Trainee> {
     // Generate unique trainee ID and tag number
-    const traineesSnapshot = await getDocs(collection(db, 'trainees'));
+            const traineesSnapshot = await getDocs(db.collection('trainees'));
     const nextNumber = traineesSnapshot.size + 1;
     const paddedNumber = nextNumber.toString().padStart(4, '0');
     
@@ -414,7 +414,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
     
-    const docRef = await addDoc(collection(db, 'content'), content);
+    const docRef = await db.collection('content').add(content);
     return { id: docRef.id, ...content } as Content;
   }
 
@@ -475,7 +475,7 @@ export class DatabaseStorage implements IStorage {
         updatedAt: now,
       };
       
-      const docRef = await addDoc(collection(db, 'traineeProgress'), progressData);
+      const docRef = await db.collection('traineeProgress').add(progressData);
       return { id: docRef.id, ...progressData } as TraineeProgress;
     }
   }
@@ -515,7 +515,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
     
-    const docRef = await addDoc(collection(db, 'announcements'), announcementData);
+    const docRef = await db.collection('announcements').add(announcementData);
     return { id: docRef.id, ...announcementData } as Announcement;
   }
 
@@ -635,7 +635,7 @@ export class DatabaseStorage implements IStorage {
     
     console.log('Creating announcement reply with data:', replyData);
     
-    const docRef = await addDoc(collection(db, 'announcementReplies'), replyData);
+    const docRef = await db.collection('announcementReplies').add(replyData);
     return { id: docRef.id, ...replyData } as AnnouncementReply;
   }
 
@@ -647,7 +647,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
     };
     
-    const docRef = await addDoc(collection(db, 'notifications'), notificationData);
+    const docRef = await db.collection('notifications').add(notificationData);
     return { id: docRef.id, ...notificationData } as Notification;
   }
 
@@ -775,7 +775,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    const docRef = await addDoc(collection(db, 'exams'), examData);
+    const docRef = await db.collection('exams').add(examData);
     return { id: docRef.id, ...examData };
   }
 
@@ -816,7 +816,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    const docRef = await addDoc(collection(db, 'examQuestions'), questionData);
+    const docRef = await db.collection('examQuestions').add(questionData);
     return { id: docRef.id, ...questionData };
   }
 
@@ -901,7 +901,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: now,
     };
     
-    const docRef = await addDoc(collection(db, 'examAttempts'), attemptData);
+    const docRef = await db.collection('examAttempts').add(attemptData);
     return { id: docRef.id, ...attemptData };
   }
 
@@ -926,7 +926,7 @@ export class DatabaseStorage implements IStorage {
       const isCorrect = question.correctAnswer === answer;
       const pointsAwarded = isCorrect ? question.points : 0;
       
-      await addDoc(collection(db, 'examAnswers'), {
+      await db.collection('examAnswers').add({
         attemptId,
         questionId,
         answer,

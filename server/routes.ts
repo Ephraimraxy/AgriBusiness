@@ -66,21 +66,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Check in resource_person_registrations collection
-        const rpRegQuery = query(collection(db, 'resource_person_registrations'), where('email', '==', email), limit(1));
+        const rpRegQuery = query(db.collection('resource_person_registrations'), where('email', '==', email), limit(1));
         const rpRegSnapshot = await getDocs(rpRegQuery);
         if (!rpRegSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a resource person' });
         }
 
         // Check in users collection
-        const usersQuery = query(collection(db, 'users'), where('email', '==', email), limit(1));
+        const usersQuery = query(db.collection('users'), where('email', '==', email), limit(1));
         const usersSnapshot = await getDocs(usersQuery);
         if (!usersSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered in the system' });
         }
 
         // Check in staffs collection
-        const staffsQuery = query(collection(db, 'staffs'), where('email', '==', email), limit(1));
+        const staffsQuery = query(db.collection('staffs'), where('email', '==', email), limit(1));
         const staffsSnapshot = await getDocs(staffsQuery);
         if (!staffsSnapshot.empty) {
           return res.status(400).json({ message: 'This email is already registered as a staff member' });

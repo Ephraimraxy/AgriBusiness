@@ -141,7 +141,7 @@ export function registerVideoFileRoutes(app: Express) {
   });
 
   // --------------------------------- Files ----------------------------------
-  const filesCol = collection(db, "files");
+        const filesCol = db.collection("files");
 
   app.get("/api/files", async (_req, res) => {
     try {

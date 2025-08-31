@@ -25,6 +25,9 @@ import {
 import { db } from "./firebase";
 import { Timestamp } from "firebase-admin/firestore";
 
+// In-memory fallback for password reset tokens (for when Firebase is unavailable)
+const memoryTokens = new Map<string, { email: string; traineeId: string; expiry: Date }>();
+
 export interface IStorage {
   // User operations - mandatory for Replit Auth
   getUser(id: string): Promise<User | undefined>;
@@ -796,27 +799,31 @@ export class FirebaseStorage implements IStorage {
   async cleanupExpiredPasswordResetTokens(): Promise<void> {
     try {
       const now = Timestamp.fromDate(new Date());
-      const snapshot = await db.collection('trainees')
-        .where('resetTokenExpiry', '<', now)
+      const snapshot = await db.collection('passwordResetTokens')
+        .where('expiry', '<', now)
         .where('resetToken', '!=', null)
         .get();
       
       const batch = db.batch();
       snapshot.docs.forEach(doc => {
-        batch.update(doc.ref, {
-          resetToken: null,
-          resetTokenExpiry: null,
-          resetTokenCreatedAt: null,
-        });
+        batch.delete(doc.ref);
       });
       
       if (snapshot.docs.length > 0) {
         await batch.commit();
-        console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens`);
+        console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens from Firebase`);
       }
     } catch (error) {
-      console.error('[STORAGE ERROR] Failed to cleanup expired tokens:', error);
-      throw error;
+      console.error('[STORAGE ERROR] Failed to cleanup expired tokens from Firebase:', error);
+    } finally {
+      // Clean up memory tokens
+      const now = new Date();
+      for (const [token, data] of memoryTokens.entries()) {
+        if (data.expiry < now) {
+          memoryTokens.delete(token);
+        }
+      }
+      console.log(`[PASSWORD RESET] Cleaned up expired memory tokens`);
     }
   }
 }

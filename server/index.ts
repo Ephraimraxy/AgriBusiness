@@ -83,6 +83,11 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
+  // Add a catch-all handler for unmatched API routes
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ message: `API endpoint ${req.method} ${req.path} not found` });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -95,7 +100,14 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     // Serve static files from the client/dist directory
     const clientDistPath = path.resolve(process.cwd(), 'client/dist');
-    app.use(express.static(clientDistPath));
+    
+    // Serve static files only for non-API routes
+    app.use((req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      express.static(clientDistPath)(req, res, next);
+    });
     
     // Handle React Router by serving index.html for all non-API routes
     app.get('*', (req, res) => {

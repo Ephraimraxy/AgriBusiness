@@ -715,33 +715,43 @@ export class FirebaseStorage implements IStorage {
 
   // Password Reset Token operations
   async createPasswordResetToken(token: string, email: string, traineeId: string, expiry: Date): Promise<void> {
-    console.log('[STORAGE DEBUG] Creating password reset token:', { token, email, traineeId, expiry });
-    const tokenData = {
-      email,
-      traineeId,
-      expiry: Timestamp.fromDate(expiry),
-      createdAt: Timestamp.fromDate(new Date()),
-    };
-    
-    await db.collection('passwordResetTokens').doc(token).set(tokenData);
-    console.log('[STORAGE DEBUG] Password reset token created successfully');
+    try {
+      console.log('[STORAGE DEBUG] Creating password reset token:', { token, email, traineeId, expiry });
+      const tokenData = {
+        email,
+        traineeId,
+        expiry: Timestamp.fromDate(expiry),
+        createdAt: Timestamp.fromDate(new Date()),
+      };
+      
+      await db.collection('passwordResetTokens').doc(token).set(tokenData);
+      console.log('[STORAGE DEBUG] Password reset token created successfully');
+    } catch (error) {
+      console.error('[STORAGE ERROR] Failed to create password reset token:', error);
+      throw error;
+    }
   }
 
   async getPasswordResetToken(token: string): Promise<{ email: string; traineeId: string; expiry: Date } | undefined> {
-    console.log('[STORAGE DEBUG] Getting password reset token:', token);
-    const tokenDoc = await db.collection('passwordResetTokens').doc(token).get();
-    console.log('[STORAGE DEBUG] Token document exists:', tokenDoc.exists);
-    if (tokenDoc.exists) {
-      const data = tokenDoc.data();
-      console.log('[STORAGE DEBUG] Token data:', data);
-      return {
-        email: data!.email,
-        traineeId: data!.traineeId,
-        expiry: data!.expiry.toDate(),
-      };
+    try {
+      console.log('[STORAGE DEBUG] Getting password reset token:', token);
+      const tokenDoc = await db.collection('passwordResetTokens').doc(token).get();
+      console.log('[STORAGE DEBUG] Token document exists:', tokenDoc.exists);
+      if (tokenDoc.exists) {
+        const data = tokenDoc.data();
+        console.log('[STORAGE DEBUG] Token data:', data);
+        return {
+          email: data!.email,
+          traineeId: data!.traineeId,
+          expiry: data!.expiry.toDate(),
+        };
+      }
+      console.log('[STORAGE DEBUG] Token not found');
+      return undefined;
+    } catch (error) {
+      console.error('[STORAGE ERROR] Failed to get password reset token:', error);
+      throw error;
     }
-    console.log('[STORAGE DEBUG] Token not found');
-    return undefined;
   }
 
   async deletePasswordResetToken(token: string): Promise<void> {

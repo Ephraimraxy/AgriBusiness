@@ -28,6 +28,9 @@ import { Timestamp } from "firebase-admin/firestore";
 // In-memory fallback for password reset tokens (for when Firebase is unavailable)
 const memoryTokens = new Map<string, { email: string; traineeId: string; expiry: Date }>();
 
+// In-memory password reset token storage (server-side only)
+const passwordResetTokens = new Map<string, { email: string; traineeId: string; expiry: Date }>();
+
 export interface IStorage {
   // User operations - mandatory for Replit Auth
   getUser(id: string): Promise<User | undefined>;
@@ -721,16 +724,24 @@ export class FirebaseStorage implements IStorage {
     try {
       console.log('[STORAGE DEBUG] Creating password reset token:', { token, email, traineeId, expiry });
       
-      // Store token directly in the trainee document instead of a separate collection
-      const traineeRef = db.collection('trainees').doc(traineeId);
-      const tokenData = {
-        resetToken: token,
-        resetTokenExpiry: Timestamp.fromDate(expiry),
-        resetTokenCreatedAt: Timestamp.fromDate(new Date()),
-      };
+      // Store token in memory (server-side only)
+      passwordResetTokens.set(token, { email, traineeId, expiry });
+      console.log('[STORAGE DEBUG] Password reset token stored in memory successfully');
       
-      await traineeRef.update(tokenData);
-      console.log('[STORAGE DEBUG] Password reset token stored in trainee document successfully');
+      // Also try to store in Firebase as backup (but don't fail if it doesn't work)
+      try {
+        const tokenData = {
+          email,
+          traineeId,
+          expiry: Timestamp.fromDate(expiry),
+          createdAt: Timestamp.fromDate(new Date()),
+        };
+        
+        await db.collection('passwordResetTokens').doc(token).set(tokenData);
+        console.log('[STORAGE DEBUG] Password reset token also stored in Firebase successfully');
+      } catch (firebaseError) {
+        console.error('[STORAGE WARNING] Failed to store token in Firebase, but memory storage succeeded:', firebaseError);
+      }
     } catch (error) {
       console.error('[STORAGE ERROR] Failed to create password reset token:', error);
       throw error;
@@ -741,31 +752,42 @@ export class FirebaseStorage implements IStorage {
     try {
       console.log('[STORAGE DEBUG] Getting password reset token:', token);
       
-      // Search for the token in the trainees collection
-      const snapshot = await db.collection('trainees')
-        .where('resetToken', '==', token)
-        .limit(1)
-        .get();
-      
-      console.log('[STORAGE DEBUG] Found trainee documents with token:', snapshot.docs.length);
-      
-      if (!snapshot.empty) {
-        const traineeDoc = snapshot.docs[0];
-        const data = traineeDoc.data();
-        console.log('[STORAGE DEBUG] Token data found:', { email: data.email, traineeId: traineeDoc.id });
-        
-        return {
-          email: data.email,
-          traineeId: traineeDoc.id,
-          expiry: data.resetTokenExpiry.toDate(),
-        };
+      // Try memory first (fastest)
+      const memoryToken = passwordResetTokens.get(token);
+      if (memoryToken) {
+        console.log('[STORAGE DEBUG] Token found in memory');
+        return memoryToken;
       }
       
-      console.log('[STORAGE DEBUG] Token not found');
+      // Fallback to Firebase
+      try {
+        const tokenDoc = await db.collection('passwordResetTokens').doc(token).get();
+        console.log('[STORAGE DEBUG] Token document exists in Firebase:', tokenDoc.exists);
+        
+        if (tokenDoc.exists) {
+          const data = tokenDoc.data();
+          console.log('[STORAGE DEBUG] Token data found in Firebase:', { email: data!.email, traineeId: data!.traineeId });
+          
+          const tokenData = {
+            email: data!.email,
+            traineeId: data!.traineeId,
+            expiry: data!.expiry.toDate(),
+          };
+          
+          // Store in memory for future fast access
+          passwordResetTokens.set(token, tokenData);
+          
+          return tokenData;
+        }
+      } catch (firebaseError) {
+        console.error('[STORAGE WARNING] Failed to get token from Firebase:', firebaseError);
+      }
+      
+      console.log('[STORAGE DEBUG] Token not found in memory or Firebase');
       return undefined;
     } catch (error) {
       console.error('[STORAGE ERROR] Failed to get password reset token:', error);
-      throw error;
+      return undefined;
     }
   }
 
@@ -773,57 +795,58 @@ export class FirebaseStorage implements IStorage {
     try {
       console.log('[STORAGE DEBUG] Deleting password reset token:', token);
       
-      // Find the trainee document with this token
-      const snapshot = await db.collection('trainees')
-        .where('resetToken', '==', token)
-        .limit(1)
-        .get();
+      // Remove from memory
+      passwordResetTokens.delete(token);
+      console.log('[STORAGE DEBUG] Password reset token deleted from memory');
       
-      if (!snapshot.empty) {
-        const traineeRef = snapshot.docs[0].ref;
-        await traineeRef.update({
-          resetToken: null,
-          resetTokenExpiry: null,
-          resetTokenCreatedAt: null,
-        });
-        console.log('[STORAGE DEBUG] Password reset token deleted successfully');
-      } else {
-        console.log('[STORAGE DEBUG] Token not found for deletion');
+      // Also try to delete from Firebase (but don't fail if it doesn't work)
+      try {
+        await db.collection('passwordResetTokens').doc(token).delete();
+        console.log('[STORAGE DEBUG] Password reset token also deleted from Firebase');
+      } catch (firebaseError) {
+        console.error('[STORAGE WARNING] Failed to delete token from Firebase:', firebaseError);
       }
     } catch (error) {
       console.error('[STORAGE ERROR] Failed to delete password reset token:', error);
-      throw error;
     }
   }
 
   async cleanupExpiredPasswordResetTokens(): Promise<void> {
     try {
-      const now = Timestamp.fromDate(new Date());
-      const snapshot = await db.collection('passwordResetTokens')
-        .where('expiry', '<', now)
-        .where('resetToken', '!=', null)
-        .get();
+      console.log('[STORAGE DEBUG] Cleaning up expired password reset tokens');
       
-      const batch = db.batch();
-      snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      
-      if (snapshot.docs.length > 0) {
-        await batch.commit();
-        console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens from Firebase`);
-      }
-    } catch (error) {
-      console.error('[STORAGE ERROR] Failed to cleanup expired tokens from Firebase:', error);
-    } finally {
       // Clean up memory tokens
       const now = new Date();
-      for (const [token, data] of memoryTokens.entries()) {
+      let memoryCleaned = 0;
+      for (const [token, data] of passwordResetTokens.entries()) {
         if (data.expiry < now) {
-          memoryTokens.delete(token);
+          passwordResetTokens.delete(token);
+          memoryCleaned++;
         }
       }
-      console.log(`[PASSWORD RESET] Cleaned up expired memory tokens`);
+      console.log(`[PASSWORD RESET] Cleaned up ${memoryCleaned} expired memory tokens`);
+      
+      // Also try to clean up Firebase (but don't fail if it doesn't work)
+      try {
+        const firebaseNow = Timestamp.fromDate(now);
+        const snapshot = await db.collection('passwordResetTokens')
+          .where('expiry', '<', firebaseNow)
+          .get();
+        
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        if (snapshot.docs.length > 0) {
+          await batch.commit();
+          console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens from Firebase`);
+        }
+      } catch (firebaseError) {
+        console.error('[STORAGE WARNING] Failed to cleanup expired tokens from Firebase:', firebaseError);
+      }
+    } catch (error) {
+      console.error('[STORAGE ERROR] Failed to cleanup expired tokens:', error);
     }
   }
 }

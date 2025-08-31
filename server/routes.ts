@@ -619,7 +619,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[PASSWORD RESET DEBUG] Generated reset URL:', resetUrl);
       console.log('[PASSWORD RESET DEBUG] Token stored:', resetToken);
-      console.log('[PASSWORD RESET DEBUG] Global tokens count:', Object.keys(global.resetTokens || {}).length);
 
       // Send reset email with link
       const emailSent = await sendPasswordResetEmail(email, resetUrl);
@@ -701,7 +700,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { token } = req.params;
       
       console.log('[PASSWORD RESET DEBUG] Verifying token:', token);
-      console.log('[PASSWORD RESET DEBUG] Available tokens:', Object.keys(global.resetTokens || {}));
       
       if (!token) {
         console.log('[PASSWORD RESET DEBUG] No token provided');

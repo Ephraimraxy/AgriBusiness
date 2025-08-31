@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getUserByEmail, BaseUser } from "@/lib/firebaseService";
+import { getUserByEmail, BaseUser } from "@/lib/apiService";
 
 export interface AuthUser extends User {
   role?: string;
@@ -21,10 +21,12 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Fetch user data from Firestore
+          console.log('[AUTH DEBUG] Firebase user authenticated:', firebaseUser.email);
+          // Fetch user data from API instead of Firestore
           const userData = await getUserByEmail(firebaseUser.email || "");
           if (userData) {
-            // Combine Firebase Auth user with Firestore user data
+            console.log('[AUTH DEBUG] User data fetched from API:', userData);
+            // Combine Firebase Auth user with API user data
             const extendedUser: AuthUser = {
               ...firebaseUser,
               role: userData.role,
@@ -36,15 +38,17 @@ export function useAuth() {
             };
             setUser(extendedUser);
           } else {
-            // If no Firestore data found, use Firebase Auth user only
+            console.log('[AUTH DEBUG] No user data found in API, using Firebase Auth user only');
+            // If no API data found, use Firebase Auth user only
             setUser(firebaseUser as AuthUser);
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error("[AUTH ERROR] Error fetching user data from API:", error);
           // Fallback to Firebase Auth user only
           setUser(firebaseUser as AuthUser);
         }
       } else {
+        console.log('[AUTH DEBUG] No Firebase user authenticated');
         setUser(null);
       }
       setIsLoading(false);

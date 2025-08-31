@@ -352,6 +352,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User routes
+  app.get('/api/users', async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  app.get('/api/users/email/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      console.log('[API DEBUG] Looking up user by email:', email);
+      
+      // Try to find user in different collections
+      const trainee = await storage.getTraineeByEmail(email);
+      if (trainee) {
+        console.log('[API DEBUG] Found trainee:', trainee.id);
+        return res.json(trainee);
+      }
+      
+      // Add other user type lookups here if needed
+      // const staff = await storage.getStaffByEmail(email);
+      // const resourcePerson = await storage.getResourcePersonByEmail(email);
+      
+      console.log('[API DEBUG] User not found');
+      res.status(404).json({ message: 'User not found' });
+    } catch (error) {
+      console.error('Error fetching user by email:', error);
+      res.status(500).json({ message: 'Failed to fetch user' });
+    }
+  });
+
+  app.get('/api/trainees/email/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      console.log('[API DEBUG] Looking up trainee by email:', email);
+      
+      const trainee = await storage.getTraineeByEmail(email);
+      if (trainee) {
+        console.log('[API DEBUG] Found trainee:', trainee.id);
+        return res.json(trainee);
+      }
+      
+      console.log('[API DEBUG] Trainee not found');
+      res.status(404).json({ message: 'Trainee not found' });
+    } catch (error) {
+      console.error('Error fetching trainee by email:', error);
+      res.status(500).json({ message: 'Failed to fetch trainee' });
+    }
+  });
+
+  app.get('/api/batches', async (req, res) => {
+    try {
+      const batches = await storage.getBatches();
+      res.json(batches);
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      res.status(500).json({ message: 'Failed to fetch batches' });
+    }
+  });
+
   // Sponsor routes
   app.get('/api/sponsors', async (req, res) => {
     try {

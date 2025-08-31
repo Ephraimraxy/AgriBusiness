@@ -35,6 +35,9 @@ export interface IStorage {
   // User operations - mandatory for Replit Auth
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getUsers(): Promise<User[]>;
+  
+  // Sponsor operations
   
   // Sponsor operations
   getSponsors(): Promise<Sponsor[]>;
@@ -164,6 +167,13 @@ export class FirebaseStorage implements IStorage {
       await userRef.set(userToSave);
     }
     return userToSave as User;
+  }
+
+  async getUsers(): Promise<User[]> {
+    const snapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as User
+    );
   }
 
   // Sponsor operations

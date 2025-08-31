@@ -589,27 +589,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Password reset endpoints
   app.post('/api/auth/forgot-password', async (req, res) => {
     try {
+      console.log('[PASSWORD RESET DEBUG] Forgot password request received:', req.body);
       const { email } = req.body;
       
       if (!email) {
+        console.log('[PASSWORD RESET DEBUG] No email provided');
         return res.status(400).json({ message: "Email is required" });
       }
 
+      console.log('[PASSWORD RESET DEBUG] Looking up trainee with email:', email);
       // Check if email exists in any collection
       const existingTrainee = await storage.getTraineeByEmail(email);
       if (!existingTrainee) {
+        console.log('[PASSWORD RESET DEBUG] No trainee found with email:', email);
         return res.status(404).json({ message: "No account found with this email address" });
       }
 
+      console.log('[PASSWORD RESET DEBUG] Trainee found:', existingTrainee.id);
       // Generate reset token
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
+      console.log('[PASSWORD RESET DEBUG] Generated token:', resetToken);
+      console.log('[PASSWORD RESET DEBUG] Token expiry:', resetTokenExpiry);
+
       // Store reset token in Firebase
-      await storage.createPasswordResetToken(resetToken, email, existingTrainee.id, resetTokenExpiry);
+      try {
+        await storage.createPasswordResetToken(resetToken, email, existingTrainee.id, resetTokenExpiry);
+        console.log('[PASSWORD RESET DEBUG] Token stored successfully');
+      } catch (storageError) {
+        console.error('[PASSWORD RESET ERROR] Failed to store token:', storageError);
+        return res.status(500).json({ message: "Failed to create reset token. Please try again." });
+      }
 
       // Clean up expired tokens
-      await storage.cleanupExpiredPasswordResetTokens();
+      try {
+        await storage.cleanupExpiredPasswordResetTokens();
+        console.log('[PASSWORD RESET DEBUG] Cleanup completed');
+      } catch (cleanupError) {
+        console.error('[PASSWORD RESET WARNING] Cleanup failed:', cleanupError);
+        // Don't fail the request for cleanup errors
+      }
 
       // Create reset URL
       const baseUrl = process.env.NODE_ENV === 'production' 
@@ -618,21 +638,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
       
       console.log('[PASSWORD RESET DEBUG] Generated reset URL:', resetUrl);
-      console.log('[PASSWORD RESET DEBUG] Token stored:', resetToken);
 
       // Send reset email with link
-      const emailSent = await sendPasswordResetEmail(email, resetUrl);
-      
-      if (!emailSent) {
+      try {
+        const emailSent = await sendPasswordResetEmail(email, resetUrl);
+        
+        if (!emailSent) {
+          console.error('[PASSWORD RESET ERROR] Email sending failed');
+          return res.status(500).json({ message: "Failed to send password reset email. Please try again." });
+        }
+        
+        console.log('[PASSWORD RESET DEBUG] Email sent successfully');
+      } catch (emailError) {
+        console.error('[PASSWORD RESET ERROR] Email sending error:', emailError);
         return res.status(500).json({ message: "Failed to send password reset email. Please try again." });
       }
 
+      console.log('[PASSWORD RESET DEBUG] Password reset request completed successfully');
       res.json({ 
         message: "Password reset link sent to your email address",
         email
       });
     } catch (error) {
-      console.error("Error in forgot password:", error);
+      console.error("[PASSWORD RESET ERROR] Error in forgot password:", error);
       res.status(500).json({ message: "Password reset request failed" });
     }
   });
@@ -641,38 +669,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/auth/reset-password', async (req, res) => {
     try {
+      console.log('[PASSWORD RESET DEBUG] Reset password request received:', { token: req.body.token ? '***' : 'missing', hasPassword: !!req.body.newPassword });
       const { token, newPassword } = req.body;
       
       if (!token || !newPassword) {
+        console.log('[PASSWORD RESET DEBUG] Missing token or password');
         return res.status(400).json({ message: "Token and new password are required" });
       }
 
       // Validate password strength
       if (newPassword.length < 6) {
+        console.log('[PASSWORD RESET DEBUG] Password too short');
         return res.status(400).json({ message: "Password must be at least 6 characters long" });
       }
 
       // Check stored reset tokens
-      const storedData = await storage.getPasswordResetToken(token);
+      let storedData;
+      try {
+        storedData = await storage.getPasswordResetToken(token);
+        console.log('[PASSWORD RESET DEBUG] Retrieved stored data:', storedData ? 'exists' : 'not found');
+      } catch (storageError) {
+        console.error('[PASSWORD RESET ERROR] Failed to get token from storage:', storageError);
+        return res.status(500).json({ message: "Failed to verify token. Please try again." });
+      }
 
       if (!storedData) {
+        console.log('[PASSWORD RESET DEBUG] Token not found in storage');
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
 
       if (new Date() > storedData.expiry) {
+        console.log('[PASSWORD RESET DEBUG] Token expired');
         // Clean up expired token
-        await storage.deletePasswordResetToken(token);
+        try {
+          await storage.deletePasswordResetToken(token);
+        } catch (deleteError) {
+          console.error('[PASSWORD RESET WARNING] Failed to delete expired token:', deleteError);
+        }
         return res.status(400).json({ message: "Reset token has expired" });
       }
 
       // Update trainee password in Firebase Auth
       try {
+        console.log('[PASSWORD RESET DEBUG] Getting trainee data for ID:', storedData.traineeId);
         // Get the trainee to find their Firebase UID
         const trainee = await storage.getTrainee(storedData.traineeId);
         if (!trainee || !trainee.firebaseUid) {
+          console.error('[PASSWORD RESET ERROR] Trainee not found or no Firebase UID:', { traineeId: storedData.traineeId, hasTrainee: !!trainee, hasFirebaseUid: !!trainee?.firebaseUid });
           throw new Error("Trainee not found or no Firebase UID");
         }
 
+        console.log('[PASSWORD RESET DEBUG] Updating password for Firebase UID:', trainee.firebaseUid);
         // Update password in Firebase Auth using Admin SDK
         const { getAuth } = await import('firebase-admin/auth');
         const auth = getAuth();
@@ -680,16 +727,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: newPassword
         });
 
+        console.log('[PASSWORD RESET DEBUG] Password updated successfully');
         // Clean up used token
-        await storage.deletePasswordResetToken(token);
+        try {
+          await storage.deletePasswordResetToken(token);
+          console.log('[PASSWORD RESET DEBUG] Token deleted after successful password update');
+        } catch (deleteError) {
+          console.error('[PASSWORD RESET WARNING] Failed to delete used token:', deleteError);
+        }
 
         res.json({ message: "Password reset successfully" });
       } catch (updateError) {
-        console.error("Error updating password:", updateError);
+        console.error("[PASSWORD RESET ERROR] Error updating password:", updateError);
         res.status(500).json({ message: "Failed to update password. Please try again." });
       }
     } catch (error) {
-      console.error("Error in reset password:", error);
+      console.error("[PASSWORD RESET ERROR] Error in reset password:", error);
       res.status(500).json({ message: "Password reset failed" });
     }
   });
@@ -707,10 +760,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check stored reset tokens
-      const storedData = await storage.getPasswordResetToken(token);
-
-      console.log('[PASSWORD RESET DEBUG] Stored data for token:', storedData);
-      console.log('[PASSWORD RESET DEBUG] Token being verified:', token);
+      let storedData;
+      try {
+        storedData = await storage.getPasswordResetToken(token);
+        console.log('[PASSWORD RESET DEBUG] Stored data for token:', storedData);
+      } catch (storageError) {
+        console.error('[PASSWORD RESET ERROR] Failed to get token from storage:', storageError);
+        return res.status(500).json({ message: "Failed to verify token. Please try again." });
+      }
 
       if (!storedData) {
         console.log('[PASSWORD RESET DEBUG] Token not found in storage');
@@ -720,7 +777,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (new Date() > storedData.expiry) {
         console.log('[PASSWORD RESET DEBUG] Token expired');
         // Clean up expired token
-        await storage.deletePasswordResetToken(token);
+        try {
+          await storage.deletePasswordResetToken(token);
+        } catch (deleteError) {
+          console.error('[PASSWORD RESET WARNING] Failed to delete expired token:', deleteError);
+        }
         return res.status(400).json({ message: "Reset token has expired" });
       }
 
@@ -730,7 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: storedData.email
       });
     } catch (error) {
-      console.error("Error in verify reset token:", error);
+      console.error("[PASSWORD RESET ERROR] Error in verify reset token:", error);
       res.status(500).json({ message: "Token verification failed" });
     }
   });

@@ -717,15 +717,17 @@ export class FirebaseStorage implements IStorage {
   async createPasswordResetToken(token: string, email: string, traineeId: string, expiry: Date): Promise<void> {
     try {
       console.log('[STORAGE DEBUG] Creating password reset token:', { token, email, traineeId, expiry });
+      
+      // Store token directly in the trainee document instead of a separate collection
+      const traineeRef = db.collection('trainees').doc(traineeId);
       const tokenData = {
-        email,
-        traineeId,
-        expiry: Timestamp.fromDate(expiry),
-        createdAt: Timestamp.fromDate(new Date()),
+        resetToken: token,
+        resetTokenExpiry: Timestamp.fromDate(expiry),
+        resetTokenCreatedAt: Timestamp.fromDate(new Date()),
       };
       
-      await db.collection('passwordResetTokens').doc(token).set(tokenData);
-      console.log('[STORAGE DEBUG] Password reset token created successfully');
+      await traineeRef.update(tokenData);
+      console.log('[STORAGE DEBUG] Password reset token stored in trainee document successfully');
     } catch (error) {
       console.error('[STORAGE ERROR] Failed to create password reset token:', error);
       throw error;
@@ -735,17 +737,27 @@ export class FirebaseStorage implements IStorage {
   async getPasswordResetToken(token: string): Promise<{ email: string; traineeId: string; expiry: Date } | undefined> {
     try {
       console.log('[STORAGE DEBUG] Getting password reset token:', token);
-      const tokenDoc = await db.collection('passwordResetTokens').doc(token).get();
-      console.log('[STORAGE DEBUG] Token document exists:', tokenDoc.exists);
-      if (tokenDoc.exists) {
-        const data = tokenDoc.data();
-        console.log('[STORAGE DEBUG] Token data:', data);
+      
+      // Search for the token in the trainees collection
+      const snapshot = await db.collection('trainees')
+        .where('resetToken', '==', token)
+        .limit(1)
+        .get();
+      
+      console.log('[STORAGE DEBUG] Found trainee documents with token:', snapshot.docs.length);
+      
+      if (!snapshot.empty) {
+        const traineeDoc = snapshot.docs[0];
+        const data = traineeDoc.data();
+        console.log('[STORAGE DEBUG] Token data found:', { email: data.email, traineeId: traineeDoc.id });
+        
         return {
-          email: data!.email,
-          traineeId: data!.traineeId,
-          expiry: data!.expiry.toDate(),
+          email: data.email,
+          traineeId: traineeDoc.id,
+          expiry: data.resetTokenExpiry.toDate(),
         };
       }
+      
       console.log('[STORAGE DEBUG] Token not found');
       return undefined;
     } catch (error) {
@@ -755,23 +767,56 @@ export class FirebaseStorage implements IStorage {
   }
 
   async deletePasswordResetToken(token: string): Promise<void> {
-    await db.collection('passwordResetTokens').doc(token).delete();
+    try {
+      console.log('[STORAGE DEBUG] Deleting password reset token:', token);
+      
+      // Find the trainee document with this token
+      const snapshot = await db.collection('trainees')
+        .where('resetToken', '==', token)
+        .limit(1)
+        .get();
+      
+      if (!snapshot.empty) {
+        const traineeRef = snapshot.docs[0].ref;
+        await traineeRef.update({
+          resetToken: null,
+          resetTokenExpiry: null,
+          resetTokenCreatedAt: null,
+        });
+        console.log('[STORAGE DEBUG] Password reset token deleted successfully');
+      } else {
+        console.log('[STORAGE DEBUG] Token not found for deletion');
+      }
+    } catch (error) {
+      console.error('[STORAGE ERROR] Failed to delete password reset token:', error);
+      throw error;
+    }
   }
 
   async cleanupExpiredPasswordResetTokens(): Promise<void> {
-    const now = Timestamp.fromDate(new Date());
-    const snapshot = await db.collection('passwordResetTokens')
-      .where('expiry', '<', now)
-      .get();
-    
-    const batch = db.batch();
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    
-    if (snapshot.docs.length > 0) {
-      await batch.commit();
-      console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens`);
+    try {
+      const now = Timestamp.fromDate(new Date());
+      const snapshot = await db.collection('trainees')
+        .where('resetTokenExpiry', '<', now)
+        .where('resetToken', '!=', null)
+        .get();
+      
+      const batch = db.batch();
+      snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, {
+          resetToken: null,
+          resetTokenExpiry: null,
+          resetTokenCreatedAt: null,
+        });
+      });
+      
+      if (snapshot.docs.length > 0) {
+        await batch.commit();
+        console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens`);
+      }
+    } catch (error) {
+      console.error('[STORAGE ERROR] Failed to cleanup expired tokens:', error);
+      throw error;
     }
   }
 }

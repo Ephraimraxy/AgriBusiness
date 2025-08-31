@@ -102,6 +102,12 @@ export interface IStorage {
   updateExamQuestion(id: string, question: Partial<InsertExamQuestion>): Promise<ExamQuestion>;
   deleteExamQuestion(id: string): Promise<void>;
   
+  // Password Reset Token operations
+  createPasswordResetToken(token: string, email: string, traineeId: string, expiry: Date): Promise<void>;
+  getPasswordResetToken(token: string): Promise<{ email: string; traineeId: string; expiry: Date } | undefined>;
+  deletePasswordResetToken(token: string): Promise<void>;
+  cleanupExpiredPasswordResetTokens(): Promise<void>;
+  
   // Exam Attempt operations
   createExamAttempt(attempt: ExamAttempt): Promise<ExamAttempt>;
   getExamAttempts(traineeId: string): Promise<ExamAttempt[]>;
@@ -705,6 +711,52 @@ export class FirebaseStorage implements IStorage {
     await answerRef.update(updateData);
     const updatedDoc = await answerRef.get();
     return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as ExamAnswer;
+  }
+
+  // Password Reset Token operations
+  async createPasswordResetToken(token: string, email: string, traineeId: string, expiry: Date): Promise<void> {
+    const tokenData = {
+      email,
+      traineeId,
+      expiry: Timestamp.fromDate(expiry),
+      createdAt: Timestamp.fromDate(new Date()),
+    };
+    
+    await db.collection('passwordResetTokens').doc(token).set(tokenData);
+  }
+
+  async getPasswordResetToken(token: string): Promise<{ email: string; traineeId: string; expiry: Date } | undefined> {
+    const tokenDoc = await db.collection('passwordResetTokens').doc(token).get();
+    if (tokenDoc.exists) {
+      const data = tokenDoc.data();
+      return {
+        email: data!.email,
+        traineeId: data!.traineeId,
+        expiry: data!.expiry.toDate(),
+      };
+    }
+    return undefined;
+  }
+
+  async deletePasswordResetToken(token: string): Promise<void> {
+    await db.collection('passwordResetTokens').doc(token).delete();
+  }
+
+  async cleanupExpiredPasswordResetTokens(): Promise<void> {
+    const now = Timestamp.fromDate(new Date());
+    const snapshot = await db.collection('passwordResetTokens')
+      .where('expiry', '<', now)
+      .get();
+    
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    if (snapshot.docs.length > 0) {
+      await batch.commit();
+      console.log(`[PASSWORD RESET] Cleaned up ${snapshot.docs.length} expired tokens`);
+    }
   }
 }
 

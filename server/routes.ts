@@ -605,21 +605,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-      // Store reset token temporarily
-      global.resetTokens = global.resetTokens || {};
-      global.resetTokens[resetToken] = {
-        email: email,
-        traineeId: existingTrainee.id,
-        expiry: resetTokenExpiry
-      };
+      // Store reset token in Firebase
+      await storage.createPasswordResetToken(resetToken, email, existingTrainee.id, resetTokenExpiry);
 
       // Clean up expired tokens
-      const now = new Date();
-      Object.keys(global.resetTokens).forEach(token => {
-        if (global.resetTokens[token].expiry < now) {
-          delete global.resetTokens[token];
-        }
-      });
+      await storage.cleanupExpiredPasswordResetTokens();
 
       // Create reset URL
       const baseUrl = process.env.NODE_ENV === 'production' 
@@ -664,8 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check stored reset tokens
-      global.resetTokens = global.resetTokens || {};
-      const storedData = global.resetTokens[token];
+      const storedData = await storage.getPasswordResetToken(token);
 
       if (!storedData) {
         return res.status(400).json({ message: "Invalid or expired reset token" });
@@ -673,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (new Date() > storedData.expiry) {
         // Clean up expired token
-        delete global.resetTokens[token];
+        await storage.deletePasswordResetToken(token);
         return res.status(400).json({ message: "Reset token has expired" });
       }
 
@@ -693,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Clean up used token
-        delete global.resetTokens[token];
+        await storage.deletePasswordResetToken(token);
 
         res.json({ message: "Password reset successfully" });
       } catch (updateError) {
@@ -720,8 +709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check stored reset tokens
-      global.resetTokens = global.resetTokens || {};
-      const storedData = global.resetTokens[token];
+      const storedData = await storage.getPasswordResetToken(token);
 
       console.log('[PASSWORD RESET DEBUG] Stored data for token:', storedData);
 
@@ -733,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (new Date() > storedData.expiry) {
         console.log('[PASSWORD RESET DEBUG] Token expired');
         // Clean up expired token
-        delete global.resetTokens[token];
+        await storage.deletePasswordResetToken(token);
         return res.status(400).json({ message: "Reset token has expired" });
       }
 

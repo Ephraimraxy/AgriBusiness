@@ -613,10 +613,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiry: resetTokenExpiry
       };
 
+      // Clean up expired tokens
+      const now = new Date();
+      Object.keys(global.resetTokens).forEach(token => {
+        if (global.resetTokens[token].expiry < now) {
+          delete global.resetTokens[token];
+        }
+      });
+
       // Create reset URL
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? (process.env.RENDER_EXTERNAL_URL || 'https://agribusiness-2.onrender.com')
-        : 'http://localhost:3000';
+        ? 'https://css-isac.netlify.app'
+        : 'http://localhost:5173';
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
       
       console.log('[PASSWORD RESET DEBUG] Generated reset URL:', resetUrl);
@@ -707,6 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[PASSWORD RESET DEBUG] Available tokens:', Object.keys(global.resetTokens || {}));
       
       if (!token) {
+        console.log('[PASSWORD RESET DEBUG] No token provided');
         return res.status(400).json({ message: "Token is required" });
       }
 
@@ -717,15 +726,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[PASSWORD RESET DEBUG] Stored data for token:', storedData);
 
       if (!storedData) {
+        console.log('[PASSWORD RESET DEBUG] Token not found in storage');
         return res.status(400).json({ message: "Invalid reset token" });
       }
 
       if (new Date() > storedData.expiry) {
+        console.log('[PASSWORD RESET DEBUG] Token expired');
         // Clean up expired token
         delete global.resetTokens[token];
         return res.status(400).json({ message: "Reset token has expired" });
       }
 
+      console.log('[PASSWORD RESET DEBUG] Token is valid for email:', storedData.email);
       res.json({ 
         message: "Token is valid",
         email: storedData.email

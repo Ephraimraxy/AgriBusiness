@@ -24,7 +24,7 @@ app.use(cookieParser());
 
 // Minimal CORS middleware to allow external access if needed
 const allowedOrigins = new Set([
-  'https://css-isac.netlify.app',
+  'https://agribusiness-2.onrender.com',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   process.env.CORS_ORIGIN || ''

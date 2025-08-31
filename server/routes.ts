@@ -623,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create reset URL
       const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://css-isac.netlify.app'
+        ? (process.env.RENDER_EXTERNAL_URL || 'https://agribusiness-2.onrender.com')
         : 'http://localhost:5173';
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
       

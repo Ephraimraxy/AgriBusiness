@@ -710,6 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const storedData = await storage.getPasswordResetToken(token);
 
       console.log('[PASSWORD RESET DEBUG] Stored data for token:', storedData);
+      console.log('[PASSWORD RESET DEBUG] Token being verified:', token);
 
       if (!storedData) {
         console.log('[PASSWORD RESET DEBUG] Token not found in storage');

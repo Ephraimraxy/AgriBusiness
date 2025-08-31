@@ -715,6 +715,7 @@ export class FirebaseStorage implements IStorage {
 
   // Password Reset Token operations
   async createPasswordResetToken(token: string, email: string, traineeId: string, expiry: Date): Promise<void> {
+    console.log('[STORAGE DEBUG] Creating password reset token:', { token, email, traineeId, expiry });
     const tokenData = {
       email,
       traineeId,
@@ -723,18 +724,23 @@ export class FirebaseStorage implements IStorage {
     };
     
     await db.collection('passwordResetTokens').doc(token).set(tokenData);
+    console.log('[STORAGE DEBUG] Password reset token created successfully');
   }
 
   async getPasswordResetToken(token: string): Promise<{ email: string; traineeId: string; expiry: Date } | undefined> {
+    console.log('[STORAGE DEBUG] Getting password reset token:', token);
     const tokenDoc = await db.collection('passwordResetTokens').doc(token).get();
+    console.log('[STORAGE DEBUG] Token document exists:', tokenDoc.exists);
     if (tokenDoc.exists) {
       const data = tokenDoc.data();
+      console.log('[STORAGE DEBUG] Token data:', data);
       return {
         email: data!.email,
         traineeId: data!.traineeId,
         expiry: data!.expiry.toDate(),
       };
     }
+    console.log('[STORAGE DEBUG] Token not found');
     return undefined;
   }
 

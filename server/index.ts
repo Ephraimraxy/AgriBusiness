@@ -76,25 +76,37 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize Firebase collections
-  await initializeFirebase();
-  // Test email connection on startup for visibility
-  await testEmailConnection();
-  
-  const server = await registerRoutes(app);
+  try {
+    console.log('[SERVER STARTUP] Starting server initialization...');
+    
+    // Initialize Firebase collections
+    console.log('[SERVER STARTUP] Initializing Firebase...');
+    await initializeFirebase();
+    console.log('[SERVER STARTUP] Firebase initialized successfully');
+    
+    // Test email connection on startup for visibility
+    console.log('[SERVER STARTUP] Testing email connection...');
+    await testEmailConnection();
+    console.log('[SERVER STARTUP] Email connection tested');
+    
+    console.log('[SERVER STARTUP] Registering routes...');
+    const server = await registerRoutes(app);
+    console.log('[SERVER STARTUP] Routes registered successfully');
 
-  // Add a catch-all handler for unmatched API routes
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({ message: `API endpoint ${req.method} ${req.path} not found` });
-  });
+    // Add a catch-all handler for unmatched API routes
+    app.use('/api/*', (req, res) => {
+      console.log(`[API 404] Unmatched API route: ${req.method} ${req.path}`);
+      res.status(404).json({ message: `API endpoint ${req.method} ${req.path} not found` });
+    });
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('[SERVER ERROR] Unhandled error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
-  });
+      res.status(status).json({ message });
+      throw err;
+    });
 
   // Serve static files from the built React app
   if (process.env.NODE_ENV === 'production') {

@@ -15,6 +15,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware disabled for now since we're using Firebase and admin auth
   // await setupAuth(app);
 
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    console.log('[HEALTH CHECK] Server is running');
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // Exam routes
   app.post('/api/exams', isAdminAuthenticated, async (req, res) => {
     try {

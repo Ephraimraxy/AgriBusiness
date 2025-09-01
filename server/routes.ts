@@ -822,18 +822,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update trainee password in Firebase Auth
       try {
         console.log('[PASSWORD RESET DEBUG] Getting trainee data for ID:', storedData.traineeId);
-        // Get the trainee to find their Firebase UID
+        // Get the trainee to find their email
         const trainee = await storage.getTrainee(storedData.traineeId);
-        if (!trainee || !trainee.firebaseUid) {
-          console.error('[PASSWORD RESET ERROR] Trainee not found or no Firebase UID:', { traineeId: storedData.traineeId, hasTrainee: !!trainee, hasFirebaseUid: !!trainee?.firebaseUid });
-          throw new Error("Trainee not found or no Firebase UID");
+        if (!trainee || !trainee.email) {
+          console.error('[PASSWORD RESET ERROR] Trainee not found or no email:', { traineeId: storedData.traineeId, hasTrainee: !!trainee, hasEmail: !!trainee?.email });
+          throw new Error("Trainee not found or no email");
         }
 
-        console.log('[PASSWORD RESET DEBUG] Updating password for Firebase UID:', trainee.firebaseUid);
+        console.log('[PASSWORD RESET DEBUG] Updating password for email:', trainee.email);
         // Update password in Firebase Auth using Admin SDK
         const { getAuth } = await import('firebase-admin/auth');
         const auth = getAuth();
-        await auth.updateUser(trainee.firebaseUid, {
+        
+        // Find user by email and update password
+        const userRecord = await auth.getUserByEmail(trainee.email);
+        await auth.updateUser(userRecord.uid, {
           password: newPassword
         });
 

@@ -26,6 +26,7 @@ import {
 // Local type definitions for staff and resource person
 type Staff = any;
 type ResourcePerson = any;
+type Batch = any;
 import { db } from "./firebase";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -113,6 +114,9 @@ export interface IStorage {
   getExam(id: string): Promise<Exam | undefined>;
   updateExam(id: string, exam: Partial<InsertExam>): Promise<Exam>;
   deleteExam(id: string): Promise<void>;
+  
+  // Batch operations
+  getBatches(): Promise<Batch[]>;
   
   // Exam Question operations
   createExamQuestion(question: InsertExamQuestion): Promise<ExamQuestion>;
@@ -641,6 +645,14 @@ export class FirebaseStorage implements IStorage {
     await this.deleteExamQuestions(id);
     // Then delete the exam itself
     await db.collection('exams').doc(id).delete();
+  }
+
+  // Batch operations
+  async getBatches(): Promise<Batch[]> {
+    const snapshot = await db.collection('batches').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as Batch
+    );
   }
 
   // Exam Question operations

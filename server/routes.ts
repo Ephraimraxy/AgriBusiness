@@ -442,6 +442,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/resource_person_registrations/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      await storage.deleteResourcePersonRegistration(id);
+      res.json({ message: 'Resource person registration deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting resource person registration:', error);
+      res.status(500).json({ message: 'Failed to delete resource person registration' });
+    }
+  });
+
+  app.put('/api/generatedIds/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const updateData = req.body;
+      const updatedId = await storage.updateGeneratedId(id, updateData);
+      res.json(updatedId);
+    } catch (error) {
+      console.error('Error updating generated ID:', error);
+      res.status(500).json({ message: 'Failed to update generated ID' });
+    }
+  });
+
   app.get('/api/staffs', async (req, res) => {
     try {
       const staffs = await storage.getStaffs();
@@ -572,6 +595,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching trainee by email:", error);
       res.status(500).json({ message: "Failed to fetch trainee" });
+    }
+  });
+
+  // Trainee can get roommates (public endpoint for authenticated trainees)
+  app.get('/api/trainees/roommates', async (req, res) => {
+    try {
+      const { roomBlock, roomNumber } = req.query;
+      
+      if (!roomBlock || !roomNumber) {
+        return res.status(400).json({ message: "Room block and room number are required" });
+      }
+      
+      const trainees = await storage.getTrainees();
+      const roommates = trainees.filter((trainee: any) => 
+        trainee.roomBlock === roomBlock && trainee.roomNumber === roomNumber
+      );
+      
+      res.json(roommates);
+    } catch (error) {
+      console.error("Error fetching roommates:", error);
+      res.status(500).json({ message: "Failed to fetch roommates" });
     }
   });
 

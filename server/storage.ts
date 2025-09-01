@@ -57,7 +57,11 @@ export interface IStorage {
   getStaffs(): Promise<Staff[]>;
   getStaffRegistrations(): Promise<Staff[]>;
   getResourcePersonRegistrations(): Promise<ResourcePerson[]>;
+  deleteResourcePersonRegistration(id: string): Promise<void>;
   getResourcePersons(): Promise<ResourcePerson[]>;
+  
+  // Generated IDs operations
+  updateGeneratedId(id: string, updateData: any): Promise<any>;
   
   // Trainee operations
   getTrainees(): Promise<Trainee[]>;
@@ -294,6 +298,20 @@ export class FirebaseStorage implements IStorage {
     return snapshot.docs.map(doc => 
       this.convertTimestamps({ id: doc.id, ...doc.data() }) as ResourcePerson
     );
+  }
+
+  async deleteResourcePersonRegistration(id: string): Promise<void> {
+    await db.collection('resource_person_registrations').doc(id).delete();
+  }
+
+  async updateGeneratedId(id: string, updateData: any): Promise<any> {
+    const idRef = db.collection('generatedIds').doc(id);
+    await idRef.update({
+      ...updateData,
+      updatedAt: new Date(),
+    });
+    const updatedDoc = await idRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() });
   }
 
   // Trainee operations

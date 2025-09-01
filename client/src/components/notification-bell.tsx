@@ -758,42 +758,19 @@ export default function NotificationBell({ variant = 'trainee' }: NotificationBe
       
       try {
         console.log('Notification Bell - Fetching notifications for user:', userId);
-        const notificationsQuery = query(
-          collection(db, NOTIFICATIONS_COLLECTION),
-          where('userId', '==', userId),
-          orderBy('createdAt', 'desc')
-        );
+        // Use API service instead of direct Firebase call
+        const response = await fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`);
         
-        const querySnapshot = await getDocs(notificationsQuery);
-        const fetchedNotifications = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        if (!response.ok) {
+          throw new Error(`Failed to fetch notifications: ${response.statusText}`);
+        }
         
+        const fetchedNotifications = await response.json();
         console.log('Notification Bell - Fetched notifications:', fetchedNotifications);
         return fetchedNotifications;
       } catch (error) {
         console.error('Notification Bell - Error fetching notifications:', error);
-        // If there's an index error, try without orderBy
-        try {
-          console.log('Notification Bell - Retrying without orderBy...');
-          const simpleQuery = query(
-            collection(db, NOTIFICATIONS_COLLECTION),
-            where('userId', '==', userId)
-          );
-          
-          const simpleSnapshot = await getDocs(simpleQuery);
-          const simpleNotifications = simpleSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
-          console.log('Notification Bell - Fetched notifications (simple):', simpleNotifications);
-          return simpleNotifications;
-        } catch (retryError) {
-          console.error('Notification Bell - Retry also failed:', retryError);
-          return [];
-        }
+        return [];
       }
     },
     enabled: !!userId,

@@ -268,8 +268,17 @@ export default function TraineeDashboard() {
     queryKey: ["examSubmissions-dashboard", user?.uid],
     queryFn: async () => {
       if (!user?.uid) return [];
-      const qSnap = await getDocs(query(collection(db, "examSubmissions"), where("traineeId", "==", user.uid)));
-      return qSnap.docs.map(d => d.data());
+      try {
+        const response = await fetch(`/api/exam-attempts?traineeId=${encodeURIComponent(user.uid)}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch exam submissions: ${response.statusText}`);
+        }
+        const submissions = await response.json();
+        return submissions;
+      } catch (error) {
+        console.error('Error fetching exam submissions:', error);
+        return [];
+      }
     },
     enabled: !!user?.uid,
     refetchInterval: 30000,
@@ -318,14 +327,17 @@ export default function TraineeDashboard() {
     staleTime: 0,
     queryFn: async () => {
       if (!displayRoomBlock || !displayRoomNumber) return [] as any;
-      const qSnap = await getDocs(
-        query(
-          collection(db, "trainees"),
-          where("roomBlock", "==", displayRoomBlock),
-          where("roomNumber", "==", displayRoomNumber)
-        )
-      );
-      return qSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Trainee[];
+      try {
+        const response = await fetch(`/api/trainees/roommates?roomBlock=${encodeURIComponent(displayRoomBlock)}&roomNumber=${encodeURIComponent(displayRoomNumber)}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch roommates: ${response.statusText}`);
+        }
+        const trainees = await response.json();
+        return trainees as Trainee[];
+      } catch (error) {
+        console.error('Error fetching roommates:', error);
+        return [];
+      }
     }
   });
   const roommateTags = roommates

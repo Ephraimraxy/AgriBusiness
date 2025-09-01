@@ -15,15 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  getResourcePersonRegistrations,
-  ResourcePerson,
-  generateResourcePersonId, 
-  getAllDocuments,
-  getGeneratedIds
-} from "@/lib/firebaseService";
-import { collection, query, where, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { apiService } from "@/lib/apiService";
+import type { ResourcePerson } from "@/lib/firebaseService";
 
 export default function ResourcePersonIdGenerationPage() {
   const [resourcePersons, setResourcePersons] = useState<ResourcePerson[]>([]);
@@ -61,32 +54,20 @@ export default function ResourcePersonIdGenerationPage() {
       setShowDeleteModal(false);
 
       // Delete from resource_person_registrations collection
-      const registrations = await getAllDocuments<ResourcePerson>("resource_person_registrations");
+      const registrations = await apiService.getAllDocuments<ResourcePerson>("resource_person_registrations");
       const registrationToDelete = registrations.find(reg => reg.id === deleteTarget.id);
       
       if (registrationToDelete) {
-        // Delete from resource_person_registrations
-        const registrationQuery = query(
-          collection(db, 'resource_person_registrations'),
-          where('id', '==', deleteTarget.id)
-        );
-        const registrationSnapshot = await getDocs(registrationQuery);
-        if (!registrationSnapshot.empty) {
-          const docRef = doc(db, 'resource_person_registrations', registrationSnapshot.docs[0].id);
-          await deleteDoc(docRef);
-        }
+        // Delete from resource_person_registrations via API
+        await apiService.deleteDocument("resource_person_registrations", deleteTarget.id);
       }
 
-      // Update generatedIds collection to set status back to 'available'
-      const generatedIdsQuery = query(
-        collection(db, 'generatedIds'),
-        where('id', '==', deleteTarget.id),
-        where('type', '==', 'resource_person')
-      );
-      const generatedIdsSnapshot = await getDocs(generatedIdsQuery);
-      if (!generatedIdsSnapshot.empty) {
-        const docRef = doc(db, 'generatedIds', generatedIdsSnapshot.docs[0].id);
-        await updateDoc(docRef, {
+      // Update generatedIds collection to set status back to 'available' via API
+      const generatedIds = await apiService.getAllDocuments<any>("generatedIds");
+      const targetGeneratedId = generatedIds.find((id: any) => id.id === deleteTarget.id && id.type === 'resource_person');
+      
+      if (targetGeneratedId) {
+        await apiService.updateDocument("generatedIds", targetGeneratedId.id, {
           status: 'available',
           assignedTo: null,
           assignedAt: null
@@ -99,8 +80,9 @@ export default function ResourcePersonIdGenerationPage() {
       setModalType('success');
 
       // Refresh the resource persons list
-      const updatedRegistrations = await getAllDocuments<ResourcePerson>("resource_person_registrations");
-      const updatedGeneratedIds = await getGeneratedIds('resource_person');
+      const updatedRegistrations = await apiService.getAllDocuments<ResourcePerson>("resource_person_registrations");
+      const updatedGeneratedIds = await apiService.getAllDocuments<any>("generatedIds");
+      const resourcePersonIds = updatedGeneratedIds.filter((id: any) => id.type === 'resource_person');
       
       // Combine data from both collections
       const combinedData: ResourcePerson[] = [];
@@ -108,29 +90,29 @@ export default function ResourcePersonIdGenerationPage() {
       // First, add all registrations from resource_person_registrations
       combinedData.push(...updatedRegistrations);
       
-      // Then, add pending records from generatedIds that don't have registrations
-      updatedGeneratedIds.forEach(idData => {
-        if (idData.status === 'assigned' || idData.status === 'activated') {
-          // Check if this ID already has a registration
-          const hasRegistration = updatedRegistrations.find(reg => reg.id === idData.id);
-          
-          if (!hasRegistration) {
-            // Create pending record if no registration found
-            combinedData.push({
-              id: idData.id,
-              firstName: 'Pending',
-              surname: 'Pending',
-              middleName: 'Pending',
-              email: 'pending@example.com',
-              phone: 'Pending',
-              role: 'resource_person',
-              isVerified: false,
-              specialization: 'Pending',
-              createdAt: idData.createdAt
-            });
+              // Then, add pending records from generatedIds that don't have registrations
+        resourcePersonIds.forEach((idData: any) => {
+          if (idData.status === 'assigned' || idData.status === 'activated') {
+            // Check if this ID already has a registration
+            const hasRegistration = updatedRegistrations.find(reg => reg.id === idData.id);
+            
+            if (!hasRegistration) {
+              // Create pending record if no registration found
+              combinedData.push({
+                id: idData.id,
+                firstName: 'Pending',
+                surname: 'Pending',
+                middleName: 'Pending',
+                email: 'pending@example.com',
+                phone: 'Pending',
+                role: 'resource_person',
+                isVerified: false,
+                specialization: 'Pending',
+                createdAt: idData.createdAt
+              });
+            }
           }
-        }
-      });
+        });
       
       setResourcePersons(combinedData);
 
@@ -158,13 +140,14 @@ export default function ResourcePersonIdGenerationPage() {
         setIsLoading(true);
         setError('');
         
-        // Get data from resource_person_registrations collection
-        const initialRegistrations = await getAllDocuments<ResourcePerson>("resource_person_registrations");
+        // Get data from resource_person_registrations collection via API
+        const initialRegistrations = await apiService.getAllDocuments<ResourcePerson>("resource_person_registrations");
         console.log('Registrations data:', initialRegistrations);
         
-        // Get data from generatedIds collection for resource_person type
-        const initialGeneratedIds = await getGeneratedIds('resource_person');
-        console.log('Generated IDs data:', initialGeneratedIds);
+        // Get data from generatedIds collection for resource_person type via API
+        const initialGeneratedIds = await apiService.getAllDocuments<any>("generatedIds");
+        const resourcePersonIds = initialGeneratedIds.filter((id: any) => id.type === 'resource_person');
+        console.log('Generated IDs data:', resourcePersonIds);
         
         // Combine data from both collections
         const combinedData: ResourcePerson[] = [];
@@ -174,7 +157,7 @@ export default function ResourcePersonIdGenerationPage() {
         combinedData.push(...initialRegistrations);
         
         // Then, add pending records from generatedIds that don't have registrations
-        initialGeneratedIds.forEach(idData => {
+        resourcePersonIds.forEach((idData: any) => {
           if (idData.status === 'assigned' || idData.status === 'activated') {
             // Check if this ID already has a registration
             const hasRegistration = initialRegistrations.find(reg => reg.id === idData.id);
@@ -236,8 +219,13 @@ export default function ResourcePersonIdGenerationPage() {
       setModalType('loading');
       setShowModal(true);
       
-      const newId = await generateResourcePersonId();
-      setGeneratedId(newId);
+      const newGeneratedId = await apiService.createDocument("generatedIds", {
+        id: `RP${Date.now()}`,
+        type: 'resource_person',
+        status: 'available',
+        createdAt: new Date()
+      });
+      setGeneratedId(newGeneratedId.id);
       
       // Show success modal
       setModalTitle('ID Generated Successfully!');

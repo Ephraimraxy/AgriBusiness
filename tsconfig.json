@@ -8,7 +8,7 @@
     "module": "ESNext",
     "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
@@ -19,6 +19,7 @@
       "@/*": ["./client/src/*", "./client/src/exam/*"],
       "@shared/*": ["./shared/*"],
       "@exam/*": ["./client/src/exam/*"]
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./client/node_modules/@types"]
   }
 }

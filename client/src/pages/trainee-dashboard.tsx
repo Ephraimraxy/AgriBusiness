@@ -341,8 +341,8 @@ export default function TraineeDashboard() {
     }
   });
   const roommateTags = roommates
-    .filter(r => r.id !== (myTraineeRecord as any)?.id && r.id !== (trainee as any)?.id)
-    .map(r => r.tagNumber)
+    .filter((r: any) => r.id !== (myTraineeRecord as any)?.id && r.id !== (trainee as any)?.id)
+    .map((r: any) => r.tagNumber)
     .filter(Boolean) as string[];
 
   return (

@@ -6,7 +6,7 @@ import { registerVideoFileRoutes } from "./video-file-routes";
 import { authenticateAdmin, isAdminAuthenticated, destroyAdminSession, verifyAdminSession } from "./adminAuth";
 import { insertSponsorSchema, insertTraineeSchema, insertContentSchema, insertAnnouncementSchema, insertAnnouncementReplySchema, insertExamSchema, insertExamQuestionSchema } from "@shared/schema";
 import { z } from "zod";
-import crypto from "crypto";
+import * as crypto from "crypto";
 import { db } from "./firebase";
 import { sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 
@@ -131,8 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/exams', isAdminAuthenticated, async (req, res) => {
     try {
-      const sponsorId = req.query.sponsorId as string | undefined;
-      const exams = await storage.getExams(sponsorId);
+      const exams = await storage.getExams();
       res.json(exams);
     } catch (error) {
       console.error('Error fetching exams:', error);

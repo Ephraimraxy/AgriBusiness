@@ -136,6 +136,9 @@ export interface IStorage {
   getExamAttempts(traineeId: string): Promise<ExamAttempt[]>;
   getExamAttempt(id: string): Promise<ExamAttempt | undefined>;
   updateExamAttempt(id: string, attempt: Partial<ExamAttempt>): Promise<ExamAttempt>;
+  startExamAttempt(examId: string, traineeId: string): Promise<ExamAttempt>;
+  submitExamAttempt(attemptId: string, answers: any[]): Promise<ExamAttempt>;
+  gradeExamAttempt(attemptId: string): Promise<ExamAttempt>;
   
   // Exam Answer operations
   createExamAnswer(answer: ExamAnswer): Promise<ExamAnswer>;
@@ -737,6 +740,48 @@ export class FirebaseStorage implements IStorage {
     const attemptRef = db.collection('examAttempts').doc(id);
     const updateData = {
       ...attempt,
+      updatedAt: new Date(),
+    };
+    
+    await attemptRef.update(updateData);
+    const updatedDoc = await attemptRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as ExamAttempt;
+  }
+
+  async startExamAttempt(examId: string, traineeId: string): Promise<ExamAttempt> {
+    const now = new Date();
+    const attemptData = {
+      examId,
+      traineeId,
+      status: 'started',
+      startTime: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    const docRef = await db.collection('examAttempts').add(attemptData);
+    return { id: docRef.id, ...attemptData } as ExamAttempt;
+  }
+
+  async submitExamAttempt(attemptId: string, answers: any[]): Promise<ExamAttempt> {
+    const attemptRef = db.collection('examAttempts').doc(attemptId);
+    const updateData = {
+      answers,
+      status: 'submitted',
+      submitTime: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    await attemptRef.update(updateData);
+    const updatedDoc = await attemptRef.get();
+    return this.convertTimestamps({ id: updatedDoc.id, ...updatedDoc.data() }) as ExamAttempt;
+  }
+
+  async gradeExamAttempt(attemptId: string): Promise<ExamAttempt> {
+    const attemptRef = db.collection('examAttempts').doc(attemptId);
+    const updateData = {
+      status: 'graded',
+      gradeTime: new Date(),
       updatedAt: new Date(),
     };
     

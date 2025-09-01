@@ -1187,8 +1187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Exam routes
   app.get('/api/exams', isAdminAuthenticated, async (req, res) => {
     try {
-      const { sponsorId } = req.query;
-      const exams = await storage.getExams(sponsorId as string | undefined);
+      const exams = await storage.getExams();
       res.json(exams);
     } catch (error) {
       console.error('Error fetching exams:', error);
@@ -1314,11 +1313,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Exam attempt routes
   app.get('/api/exam-attempts', isAdminAuthenticated, async (req, res) => {
     try {
-      const { examId, traineeId } = req.query;
-      const attempts = await storage.getExamAttempts(
-        examId as string | undefined, 
-        traineeId as string | undefined
-      );
+      const { traineeId } = req.query;
+      if (!traineeId) {
+        return res.status(400).json({ message: 'Trainee ID is required' });
+      }
+      const attempts = await storage.getExamAttempts(traineeId as string);
       res.json(attempts);
     } catch (error) {
       console.error('Error fetching exam attempts:', error);

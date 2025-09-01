@@ -22,6 +22,10 @@ import {
   type Notification,
   type InsertNotification,
 } from "@shared/schema";
+
+// Local type definitions for staff and resource person
+type Staff = any;
+type ResourcePerson = any;
 import { db } from "./firebase";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -47,6 +51,12 @@ export interface IStorage {
   getActiveSponsor(): Promise<Sponsor | undefined>;
   deactivateAllSponsors(): Promise<void>;
   deleteSponsor(id: string): Promise<void>;
+
+  // Staff operations
+  getStaffs(): Promise<Staff[]>;
+  getStaffRegistrations(): Promise<Staff[]>;
+  getResourcePersonRegistrations(): Promise<ResourcePerson[]>;
+  getResourcePersons(): Promise<ResourcePerson[]>;
   
   // Trainee operations
   getTrainees(): Promise<Trainee[]>;
@@ -248,6 +258,35 @@ export class FirebaseStorage implements IStorage {
   // Delete sponsor by id
   async deleteSponsor(id: string): Promise<void> {
     await db.collection('sponsors').doc(id).delete();
+  }
+
+  // Staff operations
+  async getStaffs(): Promise<Staff[]> {
+    const snapshot = await db.collection('staffs').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as Staff
+    );
+  }
+
+  async getStaffRegistrations(): Promise<Staff[]> {
+    const snapshot = await db.collection('staff_registrations').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as Staff
+    );
+  }
+
+  async getResourcePersonRegistrations(): Promise<ResourcePerson[]> {
+    const snapshot = await db.collection('resource_person_registrations').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as ResourcePerson
+    );
+  }
+
+  async getResourcePersons(): Promise<ResourcePerson[]> {
+    const snapshot = await db.collection('resource_persons').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => 
+      this.convertTimestamps({ id: doc.id, ...doc.data() }) as ResourcePerson
+    );
   }
 
   // Trainee operations

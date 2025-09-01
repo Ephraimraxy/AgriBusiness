@@ -416,6 +416,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Additional collection endpoints for staff registration
+  app.get('/api/staff_registrations', async (req, res) => {
+    try {
+      const registrations = await storage.getStaffRegistrations();
+      res.json(registrations);
+    } catch (error) {
+      console.error('Error fetching staff registrations:', error);
+      res.status(500).json({ message: 'Failed to fetch staff registrations' });
+    }
+  });
+
+  app.get('/api/resource_person_registrations', async (req, res) => {
+    try {
+      const registrations = await storage.getResourcePersonRegistrations();
+      res.json(registrations);
+    } catch (error) {
+      console.error('Error fetching resource person registrations:', error);
+      res.status(500).json({ message: 'Failed to fetch resource person registrations' });
+    }
+  });
+
+  app.get('/api/staffs', async (req, res) => {
+    try {
+      const staffs = await storage.getStaffs();
+      res.json(staffs);
+    } catch (error) {
+      console.error('Error fetching staffs:', error);
+      res.status(500).json({ message: 'Failed to fetch staffs' });
+    }
+  });
+
+  app.get('/api/resource_persons', async (req, res) => {
+    try {
+      const resourcePersons = await storage.getResourcePersons();
+      res.json(resourcePersons);
+    } catch (error) {
+      console.error('Error fetching resource persons:', error);
+      res.status(500).json({ message: 'Failed to fetch resource persons' });
+    }
+  });
+
   // Sponsor routes
   app.get('/api/sponsors', async (req, res) => {
     try {
